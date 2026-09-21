@@ -1,0 +1,33 @@
+name: fix-on-marker
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  fix:
+    if: >
+      github.event.sender.login == 'swanandwagle' &&
+      startsWith(github.event.comment.body, '/fix') &&
+      github.event.issue.pull_request != null
+    runs-on: self-hosted
+    concurrency:
+      group: "fix-${{ github.event.issue.number }}"
+      cancel-in-progress: false
+    defaults:
+      run:
+        shell: cmd
+    env:
+      ORCHESTRATOR: C:\Projects\ai-delivery-orchestrator
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run fix pass
+        run: |
+          call %ORCHESTRATOR%\.venv\Scripts\activate.bat
+          cd %ORCHESTRATOR%
+          python -m orchestrator.cli.run_fix_pass ^
+            --project gym-autodev-test ^
+            --pr "${{ github.event.issue.number }}" ^
+            --feedback "${{ github.event.comment.body }}"

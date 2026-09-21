@@ -1,0 +1,47 @@
+name: next-story
+
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+
+jobs:
+  advance:
+    if: github.event.pull_request.merged == true || github.event_name == 'workflow_dispatch'
+    runs-on: self-hosted
+    concurrency:
+      group: story-loop
+      cancel-in-progress: false
+    defaults:
+      run:
+        shell: cmd
+    env:
+      ORCHESTRATOR: C:\Projects\ai-delivery-orchestrator
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      CLAUDE_CMD: C:\actions-runner\claude.exe
+      CLAUDE_CONFIG_DIR: C:\actions-runner\.claude
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Mark merged story Done
+        if: github.event_name == 'pull_request'
+        run: |
+          call %ORCHESTRATOR%\.venv\Scripts\activate.bat
+          cd %ORCHESTRATOR%
+          python -m orchestrator.cli.jira_mark_done --project gym-autodev-test --pr "${{ github.event.pull_request.number }}"
+
+      - name: Check dependency gate
+        id: gate
+        shell: powershell
+        run: |
+          & "$env:ORCHESTRATOR\.venv\Scripts\python.exe" -m orchestrator.cli.dependency_gate_check --project gym-autodev-test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $result = & "$env:ORCHESTRATOR\.venv\Scripts\python.exe" -m orchestrator.cli.dependency_gate_check --project gym-autodev-test
+          echo "clear=$result" >> $env:GITHUB_OUTPUT
+
+      - name: Run next story
+        if: steps.gate.outputs.clear == 'true'
+        run: |
+          call %ORCHESTRATOR%\.venv\Scripts\activate.bat
+          cd %ORCHESTRATOR%
+          python -m orchestrator.cli.run_next_story --project gym-autodev-test
