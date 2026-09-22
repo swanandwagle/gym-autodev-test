@@ -32,6 +32,9 @@ import java.util.stream.Collectors;
  *
  * Malformed JSON ({@link HttpMessageNotReadableException}) → 400 MALFORMED_REQUEST.
  *
+ * Detail messages are resolved from {@code error-messages.properties} via
+ * {@link ErrorMessages} so wording changes do not require recompilation.
+ *
  * Correlation: traceId is read from the request attribute set by {@link CorrelationFilter}.
  * The full exception is logged at ERROR with the traceId so it can be correlated server-side.
  */
@@ -59,8 +62,8 @@ public class GlobalExceptionHandler {
                         fe.getRejectedValue()))
                 .collect(Collectors.toList());
 
-        return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.VALIDATION_FAILED,
-                "Request validation failed. See errors.", request, null, fieldErrors);
+        return buildResponse(ErrorCode.VALIDATION_FAILED,
+                ErrorMessages.forCode(ErrorCode.VALIDATION_FAILED), request, null, fieldErrors);
     }
 
     // -------------------------------------------------------------------------
@@ -79,8 +82,8 @@ public class GlobalExceptionHandler {
                         cv.getInvalidValue()))
                 .collect(Collectors.toList());
 
-        return buildResponse(HttpStatus.UNPROCESSABLE_ENTITY, ErrorCode.VALIDATION_FAILED,
-                "Request validation failed. See errors.", request, null, fieldErrors);
+        return buildResponse(ErrorCode.VALIDATION_FAILED,
+                ErrorMessages.forCode(ErrorCode.VALIDATION_FAILED), request, null, fieldErrors);
     }
 
     // -------------------------------------------------------------------------
@@ -92,7 +95,7 @@ public class GlobalExceptionHandler {
         List<FieldError> errors = ex.getHttpStatus() == HttpStatus.UNPROCESSABLE_ENTITY
                 ? ex.getFieldErrors()
                 : null;
-        return buildResponse(ex.getHttpStatus(), ex.getErrorCode(), ex.getMessage(), request, null, errors);
+        return buildResponse(ex.getErrorCode(), ex.getMessage(), request, null, errors);
     }
 
     // -------------------------------------------------------------------------
@@ -105,8 +108,8 @@ public class GlobalExceptionHandler {
 
         String traceId = traceId(request);
         log.error("[traceId={}] DataIntegrityViolationException: {}", traceId, ex.getMessage(), ex);
-        return buildResponse(HttpStatus.CONFLICT, ErrorCode.CONFLICT,
-                "Request conflicts with current state.", request, null, null);
+        return buildResponse(ErrorCode.CONFLICT,
+                ErrorMessages.forCode(ErrorCode.CONFLICT), request, null, null);
     }
 
     // -------------------------------------------------------------------------
@@ -119,8 +122,8 @@ public class GlobalExceptionHandler {
 
         String traceId = traceId(request);
         log.error("[traceId={}] OptimisticLockingFailureException: {}", traceId, ex.getMessage(), ex);
-        return buildResponse(HttpStatus.CONFLICT, ErrorCode.CONCURRENT_MODIFICATION,
-                "The resource was modified concurrently. Please retry.", request, null, null);
+        return buildResponse(ErrorCode.CONCURRENT_MODIFICATION,
+                ErrorMessages.forCode(ErrorCode.CONCURRENT_MODIFICATION), request, null, null);
     }
 
     // -------------------------------------------------------------------------
@@ -131,33 +134,33 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorEnvelope> handleNotReadable(
             HttpMessageNotReadableException ex, HttpServletRequest request) {
 
-        return buildResponse(HttpStatus.BAD_REQUEST, ErrorCode.MALFORMED_REQUEST,
-                "Request body could not be read.", request, null, null);
+        return buildResponse(ErrorCode.MALFORMED_REQUEST,
+                ErrorMessages.forCode(ErrorCode.MALFORMED_REQUEST), request, null, null);
     }
 
     // -------------------------------------------------------------------------
-    // 5. Catch-all — unhandled exceptions (AC-2, AC-3)
+    // 5. Catch-all — unhandled exceptions
     // -------------------------------------------------------------------------
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorEnvelope> handleUnexpected(Exception ex, HttpServletRequest request) {
         String traceId = traceId(request);
         log.error("[traceId={}] Unhandled exception", traceId, ex);
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_ERROR,
-                "An unexpected error occurred.", request, null, null);
+        return buildResponse(ErrorCode.INTERNAL_ERROR,
+                ErrorMessages.forCode(ErrorCode.INTERNAL_ERROR), request, null, null);
     }
 
     // -------------------------------------------------------------------------
     // Shared builder
     // -------------------------------------------------------------------------
 
-    private ResponseEntity<ErrorEnvelope> buildResponse(HttpStatus status,
-                                                         ErrorCode code,
+    private ResponseEntity<ErrorEnvelope> buildResponse(ErrorCode code,
                                                          String detail,
                                                          HttpServletRequest request,
                                                          Exception loggableEx,
                                                          List<FieldError> errors) {
         String traceId = traceId(request);
+        HttpStatus status = code.httpStatus();
 
         if (loggableEx != null) {
             log.error("[traceId={}] {}: {}", traceId, code, detail, loggableEx);
@@ -167,7 +170,7 @@ public class GlobalExceptionHandler {
                 .type(typeUri(code))
                 .title(titleFor(code))
                 .status(status.value())
-                .code(code.name())
+                .code(code)
                 .detail(detail)
                 .instance(request.getRequestURI())
                 .timestamp(Instant.now())
@@ -189,13 +192,45 @@ public class GlobalExceptionHandler {
 
     private static String titleFor(ErrorCode code) {
         return switch (code) {
-            case MALFORMED_REQUEST       -> "Malformed Request";
-            case NOT_PERMITTED           -> "Not Permitted";
-            case NOT_FOUND               -> "Not Found";
-            case CONCURRENT_MODIFICATION -> "Concurrent Modification";
-            case CONFLICT                -> "Conflict";
-            case VALIDATION_FAILED       -> "Validation Failed";
-            case INTERNAL_ERROR          -> "Internal Server Error";
+            case MALFORMED_REQUEST          -> "Malformed Request";
+            case NOT_PERMITTED              -> "Not Permitted";
+            case MEMBER_SUSPENDED           -> "Member Suspended";
+            case MEMBER_INACTIVE            -> "Member Inactive";
+            case NOT_FOUND                  -> "Not Found";
+            case MEMBER_NOT_FOUND           -> "Member Not Found";
+            case MEMBERSHIP_PLAN_NOT_FOUND  -> "Membership Plan Not Found";
+            case MEMBERSHIP_NOT_FOUND       -> "Membership Not Found";
+            case CLASS_TYPE_NOT_FOUND       -> "Class Type Not Found";
+            case INSTRUCTOR_NOT_FOUND       -> "Instructor Not Found";
+            case ROOM_NOT_FOUND             -> "Room Not Found";
+            case SESSION_NOT_FOUND          -> "Session Not Found";
+            case BOOKING_NOT_FOUND          -> "Booking Not Found";
+            case WAITLIST_ENTRY_NOT_FOUND   -> "Waitlist Entry Not Found";
+            case CONFLICT                   -> "Conflict";
+            case CONCURRENT_MODIFICATION    -> "Concurrent Modification";
+            case DUPLICATE_BOOKING          -> "Duplicate Booking";
+            case SESSION_FULL               -> "Session Full";
+            case SESSION_CANCELLED          -> "Session Cancelled";
+            case SESSION_NOT_BOOKABLE       -> "Session Not Bookable";
+            case BOOKING_ALREADY_CANCELLED  -> "Booking Already Cancelled";
+            case BOOKING_ALREADY_CHECKED_IN -> "Booking Already Checked In";
+            case CHECK_IN_WINDOW_NOT_OPEN   -> "Check-In Window Not Open";
+            case WAITLIST_ALREADY_JOINED    -> "Waitlist Already Joined";
+            case WAITLIST_ALREADY_PROCESSED -> "Waitlist Already Processed";
+            case MEMBERSHIP_ALREADY_ACTIVE  -> "Membership Already Active";
+            case CREDITS_INSUFFICIENT       -> "Credits Insufficient";
+            case OVERLAPPING_BOOKING        -> "Overlapping Booking";
+            case LATE_CANCEL_NO_REFUND      -> "Late Cancel — No Refund";
+            case INSTRUCTOR_SCHEDULE_CONFLICT -> "Instructor Schedule Conflict";
+            case ROOM_SCHEDULE_CONFLICT     -> "Room Schedule Conflict";
+            case IDEMPOTENCY_KEY_CONFLICT   -> "Idempotency Key Conflict";
+            case JOB_ALREADY_RUNNING        -> "Job Already Running";
+            case VALIDATION_FAILED          -> "Validation Failed";
+            case INVALID_DATE_RANGE         -> "Invalid Date Range";
+            case INVALID_PAGINATION         -> "Invalid Pagination";
+            case INVALID_SORT_FIELD         -> "Invalid Sort Field";
+            case UNKNOWN_FIELD              -> "Unknown Field";
+            case INTERNAL_ERROR             -> "Internal Server Error";
         };
     }
 
@@ -206,11 +241,10 @@ public class GlobalExceptionHandler {
     }
 
     private static String constraintCode(ConstraintViolation<?> cv) {
-        String annotationType = cv.getConstraintDescriptor()
+        return cv.getConstraintDescriptor()
                 .getAnnotation()
                 .annotationType()
                 .getSimpleName()
                 .toUpperCase();
-        return annotationType;
     }
 }
