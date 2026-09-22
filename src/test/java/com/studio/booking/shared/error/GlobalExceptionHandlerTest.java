@@ -50,7 +50,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 FlywayAutoConfiguration.class
         }
 )
-@Import({GlobalExceptionHandler.class, CorrelationFilter.class})
+@Import({GlobalExceptionHandler.class, CorrelationFilter.class, ConstraintViolationTranslator.class})
 @TestPropertySource(properties = "studio.api.base-url=https://api.studio.example")
 class GlobalExceptionHandlerTest {
 
@@ -139,8 +139,9 @@ class GlobalExceptionHandlerTest {
                 .andExpect(status().isConflict())
                 .andReturn();
 
+        // Unmapped constraint (no PSQLException chain) → CONCURRENT_MODIFICATION fallback
         ErrorEnvelope env = parseEnvelope(result);
-        assertCommonFields(env, 409, ErrorCode.CONFLICT);
+        assertCommonFields(env, 409, ErrorCode.CONCURRENT_MODIFICATION);
         assertThat(env.errors()).isNull();
     }
 

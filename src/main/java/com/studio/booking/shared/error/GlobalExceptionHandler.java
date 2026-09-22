@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
  * Every response uses the same {@link ErrorEnvelope} shape regardless of origin:
  *   1. Bean-validation failure      → 422 VALIDATION_FAILED  (includes errors[])
  *   2. {@link ApiException}          → status/code from the exception
- *   3. Database constraint violation → 409 CONFLICT
+ *   3. Database constraint violation → mapped code via {@link ConstraintViolationTranslator}
  *   4. Optimistic-lock failure       → 409 CONCURRENT_MODIFICATION
  *   5. Unhandled runtime exception   → 500 INTERNAL_ERROR     (no internal detail)
  *
@@ -50,6 +50,12 @@ public class GlobalExceptionHandler {
 
     @Value("${studio.api.base-url:https://api.studio.example}")
     private String baseUrl;
+
+    private final ConstraintViolationTranslator constraintTranslator;
+
+    public GlobalExceptionHandler(ConstraintViolationTranslator constraintTranslator) {
+        this.constraintTranslator = constraintTranslator;
+    }
 
     // -------------------------------------------------------------------------
     // 1. Bean-validation — MethodArgumentNotValidException (@Valid on controller)
@@ -154,10 +160,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorEnvelope> handleDataIntegrityViolation(
             DataIntegrityViolationException ex, HttpServletRequest request) {
 
-        String traceId = traceId(request);
-        log.error("[traceId={}] DataIntegrityViolationException: {}", traceId, ex.getMessage(), ex);
-        return buildResponse(ErrorCode.CONFLICT,
-                ErrorMessages.forCode(ErrorCode.CONFLICT), request, null, null);
+        ErrorCode code = constraintTranslator.translate(ex);
+        return buildResponse(code, ErrorMessages.forCode(code), request, null, null);
     }
 
     // -------------------------------------------------------------------------
