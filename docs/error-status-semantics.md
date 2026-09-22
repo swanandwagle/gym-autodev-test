@@ -78,3 +78,41 @@ Every request and response carries a trace ID for log correlation:
 3. **`DataIntegrityViolationException`** (DB constraint) → 409 `CONFLICT`
 4. **`OptimisticLockingFailureException`** (`@Version` conflict) → 409 `CONCURRENT_MODIFICATION`
 5. **Unhandled `Exception`** (catch-all) → 500 `INTERNAL_ERROR` with generic detail only
+
+## Validation Layer — Constraint-to-Field-Code Mapping
+
+All `errors[]` entries in a 422 response carry a `code` derived from the violated constraint:
+
+| Constraint annotation | Emitted `code`   | Notes                                                     |
+|-----------------------|------------------|-----------------------------------------------------------|
+| `@NotBlank`           | `NOTBLANK`       |                                                           |
+| `@NotNull`            | `NOTNULL`        |                                                           |
+| `@NotEmpty`           | `NOTEMPTY`       |                                                           |
+| `@Min`                | `MIN`            |                                                           |
+| `@Max`                | `MAX`            |                                                           |
+| `@Size` (too short)   | `TOO_SHORT`      | Rejected value length < `min`                             |
+| `@Size` (too long)    | `TOO_LONG`       | Rejected value length > `max`                             |
+| `@Email`              | `EMAIL`          |                                                           |
+| `@Pattern`            | `PATTERN`        |                                                           |
+| `@ValidUuid`          | `INVALID_FORMAT` | Custom constraint for UUID path variables                 |
+| Unknown JSON field    | `UNKNOWN_FIELD`  | 422 with `errors[]`; distinguishable from malformed JSON  |
+| Invalid enum value    | `INVALID_ENUM`   | Message lists all accepted enum values                    |
+| Malformed JSON body   | _(none)_         | 400 `MALFORMED_REQUEST`; no `errors[]`                    |
+
+**Accumulation guarantee:** all constraint violations on a single request are collected and returned
+together. A request with five invalid fields returns one 422 with five `errors[]` entries.
+
+**Nested path:** for nested objects and collections, the `field` uses the full JSON path including
+collection index, e.g. `items[1].label`.
+
+**`rejectedValue` safety:** string rejected values are truncated at 200 characters to prevent
+attacker-controlled content from bloating error responses.
+
+## Timestamp Binding Policy
+
+- Input: accepts any ISO-8601 timestamp with any UTC offset (e.g. `2026-09-22T10:00:00+05:30`).
+- Storage: always persisted as UTC (`timestamptz`).
+- Output: always serialised as UTC with `Z` suffix (e.g. `2026-09-22T04:30:00Z`).
+
+Use `Instant` for all timestamp fields in request/response DTOs. Jackson's `JavaTimeModule`
+handles the ISO-8601 offset → UTC conversion automatically.

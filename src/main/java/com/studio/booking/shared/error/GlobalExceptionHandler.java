@@ -1,5 +1,7 @@
 package com.studio.booking.shared.error;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
+import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import com.studio.booking.shared.web.CorrelationFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolation;
@@ -15,8 +17,11 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -57,7 +62,7 @@ public class GlobalExceptionHandler {
         List<FieldError> fieldErrors = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> FieldError.of(
                         fe.getField(),
-                        fe.getCode() != null ? fe.getCode().toUpperCase() : "INVALID",
+                        mapSpringFieldErrorCode(fe),
                         fe.getDefaultMessage(),
                         fe.getRejectedValue()))
                 .collect(Collectors.toList());
@@ -80,6 +85,49 @@ public class GlobalExceptionHandler {
                         constraintCode(cv),
                         cv.getMessage(),
                         cv.getInvalidValue()))
+                .collect(Collectors.toList());
+
+        return buildResponse(ErrorCode.VALIDATION_FAILED,
+                ErrorMessages.forCode(ErrorCode.VALIDATION_FAILED), request, null, fieldErrors);
+    }
+
+    // -------------------------------------------------------------------------
+    // 1c. HandlerMethodValidationException — Spring 6.1+ method parameter validation
+    //     (path/query params annotated on @Validated controllers)
+    // -------------------------------------------------------------------------
+
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ErrorEnvelope> handleHandlerMethodValidation(
+            HandlerMethodValidationException ex, HttpServletRequest request) {
+
+        List<FieldError> fieldErrors = ex.getAllValidationResults().stream()
+                .flatMap(result -> {
+                    String paramName = result.getMethodParameter().getParameterName();
+                    if (paramName == null) {
+                        paramName = "param" + result.getMethodParameter().getParameterIndex();
+                    }
+                    final String name = paramName;
+                    Object rejected = result.getArgument();
+                    return result.getResolvableErrors().stream()
+                            .map(error -> {
+                                String code = "INVALID";
+                                if (error instanceof org.springframework.validation.FieldError fe) {
+                                    code = mapSpringFieldErrorCode(fe);
+                                } else {
+                                    // Extract from codes array: first code is most-specific
+                                    String[] codes = error.getCodes();
+                                    if (codes != null && codes.length > 0) {
+                                        // codes[0] is like "ValidUuid.methodName.paramName"
+                                        // take the first segment before the first dot
+                                        String first = codes[0];
+                                        int dot = first.indexOf('.');
+                                        String simpleName = dot > 0 ? first.substring(0, dot) : first;
+                                        code = mapSimpleConstraintName(simpleName.toUpperCase());
+                                    }
+                                }
+                                return FieldError.of(name, code, error.getDefaultMessage(), rejected);
+                            });
+                })
                 .collect(Collectors.toList());
 
         return buildResponse(ErrorCode.VALIDATION_FAILED,
@@ -127,12 +175,60 @@ public class GlobalExceptionHandler {
     }
 
     // -------------------------------------------------------------------------
-    // 9. Malformed JSON
+    // 6. MethodArgumentTypeMismatchException — path/query variable type mismatch
+    //    (e.g. malformed UUID in path variable → 422 INVALID_FORMAT)
+    // -------------------------------------------------------------------------
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorEnvelope> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex, HttpServletRequest request) {
+
+        List<FieldError> fieldErrors = List.of(FieldError.of(
+                ex.getName(),
+                "INVALID_FORMAT",
+                "Invalid value for parameter '" + ex.getName() + "': " + ex.getValue(),
+                ex.getValue()));
+
+        return buildResponse(ErrorCode.VALIDATION_FAILED,
+                ErrorMessages.forCode(ErrorCode.VALIDATION_FAILED), request, null, fieldErrors);
+    }
+
+    // -------------------------------------------------------------------------
+    // 7. Malformed JSON — UnrecognizedPropertyException → 422; other parse errors → 400
     // -------------------------------------------------------------------------
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorEnvelope> handleNotReadable(
             HttpMessageNotReadableException ex, HttpServletRequest request) {
+
+        Throwable cause = ex.getCause();
+
+        if (cause instanceof UnrecognizedPropertyException upe) {
+            List<FieldError> fieldErrors = List.of(FieldError.of(
+                    upe.getPropertyName(),
+                    "UNKNOWN_FIELD",
+                    "Unknown field: " + upe.getPropertyName(),
+                    upe.getPropertyName()));
+            return buildResponse(ErrorCode.VALIDATION_FAILED,
+                    ErrorMessages.forCode(ErrorCode.VALIDATION_FAILED), request, null, fieldErrors);
+        }
+
+        if (cause instanceof InvalidFormatException ife && ife.getTargetType() != null
+                && ife.getTargetType().isEnum()) {
+            String fieldName = ife.getPath().isEmpty() ? "unknown"
+                    : ife.getPath().getLast().getFieldName();
+            String[] accepted = Arrays.stream(ife.getTargetType().getEnumConstants())
+                    .map(Object::toString)
+                    .toArray(String[]::new);
+            String message = "Invalid value. Accepted values: " + String.join(", ", accepted);
+            List<FieldError> fieldErrors = List.of(FieldError.of(
+                    fieldName,
+                    "INVALID_ENUM",
+                    message,
+                    ife.getValue()));
+            return buildResponse(ErrorCode.VALIDATION_FAILED,
+                    ErrorMessages.forCode(ErrorCode.VALIDATION_FAILED), request, null, fieldErrors);
+        }
 
         return buildResponse(ErrorCode.MALFORMED_REQUEST,
                 ErrorMessages.forCode(ErrorCode.MALFORMED_REQUEST), request, null, null);
@@ -241,10 +337,65 @@ public class GlobalExceptionHandler {
     }
 
     private static String constraintCode(ConstraintViolation<?> cv) {
-        return cv.getConstraintDescriptor()
+        String raw = cv.getConstraintDescriptor()
                 .getAnnotation()
                 .annotationType()
                 .getSimpleName()
                 .toUpperCase();
+        return switch (raw) {
+            case "SIZE" -> {
+                jakarta.validation.constraints.Size sizeAnn =
+                        (jakarta.validation.constraints.Size) cv.getConstraintDescriptor().getAnnotation();
+                Object val = cv.getInvalidValue();
+                int len = val instanceof String s ? s.length()
+                        : val instanceof java.util.Collection<?> c ? c.size()
+                        : val instanceof Object[] a ? a.length : -1;
+                yield len >= 0 && len < sizeAnn.min() ? "TOO_SHORT" : "TOO_LONG";
+            }
+            case "VALIDUUID" -> "INVALID_FORMAT";
+            default -> raw;
+        };
+    }
+
+    /** Maps a simple (annotation class name uppercased) constraint name to the API field code. */
+    private static String mapSimpleConstraintName(String name) {
+        return switch (name) {
+            case "VALIDUUID" -> "INVALID_FORMAT";
+            default -> name;
+        };
+    }
+
+    /**
+     * Maps a Spring {@link org.springframework.validation.FieldError} to the field code string
+     * used in the error response. Handles @Size → TOO_SHORT / TOO_LONG by comparing the
+     * rejected value length against the annotation's min/max via the FieldError's arguments.
+     *
+     * Spring populates arguments[] for @Size as: [0]=field-descriptor, [1]=max, [2]=min
+     * (in reverse alphabetical order of annotation attribute names).
+     */
+    private static String mapSpringFieldErrorCode(org.springframework.validation.FieldError fe) {
+        String code = fe.getCode();
+        if (code == null) return "INVALID";
+        String upper = code.toUpperCase();
+        if ("SIZE".equals(upper)) {
+            Object[] args = fe.getArguments();
+            // Spring provides arguments in order: [descriptor, max, min]
+            if (args != null && args.length >= 3) {
+                try {
+                    int max = ((Number) args[1]).intValue();
+                    int min = ((Number) args[2]).intValue();
+                    Object val = fe.getRejectedValue();
+                    int len = val instanceof String s ? s.length()
+                            : val instanceof java.util.Collection<?> c ? c.size()
+                            : val instanceof Object[] a ? a.length : -1;
+                    if (len >= 0) {
+                        return len < min ? "TOO_SHORT" : "TOO_LONG";
+                    }
+                } catch (ClassCastException ignored) {
+                    // fall through to default
+                }
+            }
+        }
+        return upper;
     }
 }
