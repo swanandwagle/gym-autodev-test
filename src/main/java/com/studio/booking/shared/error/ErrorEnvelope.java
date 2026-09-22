@@ -8,6 +8,9 @@ import java.util.List;
 /**
  * RFC 9457 Problem Details extended with {@code code}, {@code traceId}, and {@code errors}.
  *
+ * The {@code code} field is typed as {@link ErrorCode} — it is impossible to construct an
+ * envelope with a string code that is not in the catalogue.
+ *
  * {@code errors} is only present on 422 responses. It is omitted entirely (not null, not empty)
  * on all other status codes.
  */
@@ -16,7 +19,7 @@ public record ErrorEnvelope(
         String type,
         String title,
         int status,
-        String code,
+        ErrorCode code,
         String detail,
         String instance,
         Instant timestamp,
@@ -31,7 +34,7 @@ public record ErrorEnvelope(
         private String type;
         private String title;
         private int status;
-        private String code;
+        private ErrorCode code;
         private String detail;
         private String instance;
         private Instant timestamp;
@@ -41,7 +44,7 @@ public record ErrorEnvelope(
         public Builder type(String type) { this.type = type; return this; }
         public Builder title(String title) { this.title = title; return this; }
         public Builder status(int status) { this.status = status; return this; }
-        public Builder code(String code) { this.code = code; return this; }
+        public Builder code(ErrorCode code) { this.code = code; return this; }
         public Builder detail(String detail) { this.detail = detail; return this; }
         public Builder instance(String instance) { this.instance = instance; return this; }
         public Builder timestamp(Instant timestamp) { this.timestamp = timestamp; return this; }
