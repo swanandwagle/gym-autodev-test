@@ -1,0 +1,68 @@
+openapi: 3.0.1
+info:
+  title: Fitness Class Booking System
+  description: REST API for managing gym class sessions, memberships, bookings and
+    waitlists.
+  version: "1.0"
+servers:
+- url: /
+  description: Default server
+paths: {}
+components:
+  schemas:
+    ErrorEnvelope:
+      type: object
+      description: "RFC 9457 Problem Details extended with code, traceId, and errors.\
+        \ The errors[] array is present ONLY on 422 responses."
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code from the catalogue
+          example: VALIDATION_FAILED
+        detail:
+          type: string
+          description: Human-readable explanation of this specific occurrence
+          example: Request validation failed. See errors.
+        errors:
+          type: array
+          description: "Per-field validation errors. Present ONLY on 422 responses."
+          items:
+            $ref: '#/components/schemas/FieldError'
+        instance:
+          type: string
+          description: The request path that triggered the error
+          example: /api/v1/members
+        status:
+          type: integer
+          description: HTTP status code
+          example: 422
+        timestamp:
+          type: string
+          format: date-time
+          description: UTC timestamp of when the error occurred
+        title:
+          type: string
+          description: Human-readable summary of the error type
+          example: Validation Failed
+        traceId:
+          type: string
+          description: Correlation ID — echoed from X-Request-Id or generated
+        type:
+          type: string
+          description: URI that identifies the error type
+          example: https://api.studio.example/errors/validation-failed
+    FieldError:
+      type: object
+      description: Per-field validation error detail (present only on 422 responses)
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code for the field
+        field:
+          type: string
+          description: The field that failed validation
+        message:
+          type: string
+          description: Human-readable description of the failure
+        rejectedValue:
+          description: The value that was rejected (omitted when null)
