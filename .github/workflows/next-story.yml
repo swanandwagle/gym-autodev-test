@@ -23,6 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Configure git credentials
+        run: |
+          git config --global credential.helper manager
+          git config --global url."https://x-access-token:%GH_TOKEN%@github.com/".insteadOf "https://github.com/"
+
       - name: Mark merged story Done
         if: github.event_name == 'pull_request'
         run: |
