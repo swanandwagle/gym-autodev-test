@@ -105,7 +105,7 @@ class GlobalExceptionHandlerTest {
                 .andReturn();
 
         ErrorEnvelope env = parseEnvelope(result);
-        assertCommonFields(env, 422, "VALIDATION_FAILED");
+        assertCommonFields(env, 422, ErrorCode.VALIDATION_FAILED);
         assertThat(env.errors()).isNotNull().isNotEmpty();
         assertThat(env.type()).isEqualTo("https://api.studio.example/errors/validation-failed");
     }
@@ -123,7 +123,7 @@ class GlobalExceptionHandlerTest {
                 .andReturn();
 
         ErrorEnvelope env = parseEnvelope(result);
-        assertCommonFields(env, 404, "NOT_FOUND");
+        assertCommonFields(env, 404, ErrorCode.NOT_FOUND);
         assertThat(env.errors()).isNull();
     }
 
@@ -140,7 +140,7 @@ class GlobalExceptionHandlerTest {
                 .andReturn();
 
         ErrorEnvelope env = parseEnvelope(result);
-        assertCommonFields(env, 409, "CONFLICT");
+        assertCommonFields(env, 409, ErrorCode.CONFLICT);
         assertThat(env.errors()).isNull();
     }
 
@@ -157,7 +157,7 @@ class GlobalExceptionHandlerTest {
                 .andReturn();
 
         ErrorEnvelope env = parseEnvelope(result);
-        assertCommonFields(env, 409, "CONCURRENT_MODIFICATION");
+        assertCommonFields(env, 409, ErrorCode.CONCURRENT_MODIFICATION);
         assertThat(env.errors()).isNull();
     }
 
@@ -174,7 +174,7 @@ class GlobalExceptionHandlerTest {
                 .andReturn();
 
         ErrorEnvelope env = parseEnvelope(result);
-        assertCommonFields(env, 500, "INTERNAL_ERROR");
+        assertCommonFields(env, 500, ErrorCode.INTERNAL_ERROR);
         assertThat(env.errors()).isNull();
     }
 
@@ -194,8 +194,8 @@ class GlobalExceptionHandlerTest {
         ErrorEnvelope env = parseEnvelope(result);
 
         assertThat(env.status()).isEqualTo(500);
-        assertThat(env.code()).isEqualTo("INTERNAL_ERROR");
-        assertThat(env.detail()).isEqualTo("An unexpected error occurred.");
+        assertThat(env.code()).isEqualTo(ErrorCode.INTERNAL_ERROR);
+        assertThat(env.detail()).isEqualTo(ErrorMessages.forCode(ErrorCode.INTERNAL_ERROR));
 
         // Must not contain stack trace, SQL, internal class name or package
         assertThat(body).doesNotContain("RuntimeException");
@@ -240,7 +240,6 @@ class GlobalExceptionHandlerTest {
         ErrorEnvelope env = parseEnvelope(result);
         assertThat(env.traceId()).isNotNull().isNotBlank();
 
-        // A generated traceId (UUID without dashes) should be 32 hex chars, not the request id
         String responseHeader = result.getResponse().getHeader("X-Request-Id");
         assertThat(responseHeader).isNotNull().isNotBlank();
         assertThat(env.traceId()).isEqualTo(responseHeader);
@@ -335,7 +334,7 @@ class GlobalExceptionHandlerTest {
 
         ErrorEnvelope env = parseEnvelope(result);
         assertThat(env.status()).isEqualTo(409);
-        assertThat(env.code()).isEqualTo("CONCURRENT_MODIFICATION");
+        assertThat(env.code()).isEqualTo(ErrorCode.CONCURRENT_MODIFICATION);
     }
 
     // =========================================================================
@@ -352,7 +351,7 @@ class GlobalExceptionHandlerTest {
 
         ErrorEnvelope env = parseEnvelope(result);
         assertThat(env.status()).isEqualTo(400);
-        assertThat(env.code()).isEqualTo("MALFORMED_REQUEST");
+        assertThat(env.code()).isEqualTo(ErrorCode.MALFORMED_REQUEST);
         assertThat(env.errors()).isNull();
     }
 
@@ -372,7 +371,7 @@ class GlobalExceptionHandlerTest {
         assertThat(env.type()).isNotNull().startsWith("https://api.studio.example/errors/");
         assertThat(env.title()).isNotNull().isNotBlank();
         assertThat(env.status()).isEqualTo(403);
-        assertThat(env.code()).isNotNull().isNotBlank();
+        assertThat(env.code()).isNotNull();
         assertThat(env.detail()).isNotNull().isNotBlank();
         assertThat(env.instance()).isNotNull();
         assertThat(env.timestamp()).isNotNull();
@@ -388,7 +387,7 @@ class GlobalExceptionHandlerTest {
                 result.getResponse().getContentAsString(), ErrorEnvelope.class);
     }
 
-    private void assertCommonFields(ErrorEnvelope env, int expectedStatus, String expectedCode) {
+    private void assertCommonFields(ErrorEnvelope env, int expectedStatus, ErrorCode expectedCode) {
         assertThat(env.type()).isNotNull().startsWith("https://api.studio.example/errors/");
         assertThat(env.title()).isNotNull().isNotBlank();
         assertThat(env.status()).isEqualTo(expectedStatus);
