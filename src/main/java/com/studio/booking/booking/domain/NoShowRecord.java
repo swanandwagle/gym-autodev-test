@@ -1,4 +1,4 @@
-package com.studio.booking.membership.domain;
+package com.studio.booking.booking.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -12,27 +12,21 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "credit_transaction")
-public class CreditTransaction {
+@Table(name = "no_show_record")
+public class NoShowRecord {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "membership_id", nullable = false)
-    private UUID membershipId;
-
-    @Column(name = "booking_id")
+    @Column(name = "booking_id", nullable = false)
     private UUID bookingId;
 
-    @Column(nullable = false)
-    private int delta;
+    @Column(name = "member_id", nullable = false)
+    private UUID memberId;
 
-    @Column(nullable = false)
-    private String reason;
-
-    @Column(name = "balance_after", nullable = false)
-    private int balanceAfter;
+    @Column(name = "session_id", nullable = false)
+    private UUID sessionId;
 
     @Column(name = "recorded_at", nullable = false)
     private Instant recordedAt;
@@ -46,25 +40,21 @@ public class CreditTransaction {
     @Version
     private long version;
 
-    protected CreditTransaction() {}
+    protected NoShowRecord() {}
 
-    public CreditTransaction(UUID membershipId, int delta, String reason, int balanceAfter) {
-        this.membershipId = membershipId;
-        this.delta = delta;
-        this.reason = reason;
-        this.balanceAfter = balanceAfter;
+    public NoShowRecord(UUID bookingId, UUID memberId, UUID sessionId) {
+        this.bookingId = bookingId;
+        this.memberId = memberId;
+        this.sessionId = sessionId;
         this.recordedAt = Instant.now();
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
     }
 
     public UUID getId() { return id; }
-    public UUID getMembershipId() { return membershipId; }
     public UUID getBookingId() { return bookingId; }
-    public void setBookingId(UUID bookingId) { this.bookingId = bookingId; }
-    public int getDelta() { return delta; }
-    public String getReason() { return reason; }
-    public int getBalanceAfter() { return balanceAfter; }
+    public UUID getMemberId() { return memberId; }
+    public UUID getSessionId() { return sessionId; }
     public Instant getRecordedAt() { return recordedAt; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
