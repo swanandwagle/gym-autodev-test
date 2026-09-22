@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 -- instructor
 CREATE TABLE instructor (
     id             uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -43,6 +44,53 @@ CREATE TABLE class_type (
 );
 
 -- class_session
+=======
+-- V2: instructor, room, class_type, class_session
+
+-- -------------------------------------------------------------------------
+-- instructor
+-- -------------------------------------------------------------------------
+CREATE TABLE instructor (
+    id          uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+    name        varchar(255) NOT NULL,
+    email       varchar(255) NOT NULL,
+    active      boolean      NOT NULL DEFAULT true,
+    created_at  timestamptz  NOT NULL DEFAULT now(),
+    updated_at  timestamptz  NOT NULL DEFAULT now(),
+    version     bigint       NOT NULL DEFAULT 0,
+    CONSTRAINT uq_instructor_email UNIQUE (email)
+);
+
+-- -------------------------------------------------------------------------
+-- room
+-- -------------------------------------------------------------------------
+CREATE TABLE room (
+    id          uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+    name        varchar(255) NOT NULL,
+    capacity    int          NOT NULL CHECK (capacity > 0),
+    active      boolean      NOT NULL DEFAULT true,
+    created_at  timestamptz  NOT NULL DEFAULT now(),
+    updated_at  timestamptz  NOT NULL DEFAULT now(),
+    version     bigint       NOT NULL DEFAULT 0
+);
+
+-- -------------------------------------------------------------------------
+-- class_type
+-- -------------------------------------------------------------------------
+CREATE TABLE class_type (
+    id          uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+    name        varchar(255) NOT NULL,
+    description text,
+    active      boolean      NOT NULL DEFAULT true,
+    created_at  timestamptz  NOT NULL DEFAULT now(),
+    updated_at  timestamptz  NOT NULL DEFAULT now(),
+    version     bigint       NOT NULL DEFAULT 0
+);
+
+-- -------------------------------------------------------------------------
+-- class_session
+-- -------------------------------------------------------------------------
+>>>>>>> 6708a22 (GYM-21: Database constraint violation translator (#13))
 CREATE TABLE class_session (
     id              uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
     class_type_id   uuid         NOT NULL REFERENCES class_type(id),
@@ -51,6 +99,7 @@ CREATE TABLE class_session (
     starts_at       timestamptz  NOT NULL,
     ends_at         timestamptz  NOT NULL,
     capacity        int          NOT NULL CHECK (capacity > 0),
+<<<<<<< HEAD
     booked_count    int          NOT NULL DEFAULT 0
                         CONSTRAINT ck_session_booked_count_nonneg CHECK (booked_count >= 0),
     status          varchar(20)  NOT NULL DEFAULT 'SCHEDULED'
@@ -78,3 +127,31 @@ ALTER TABLE class_session
         room_id WITH =,
         tstzrange(starts_at, ends_at, '[)') WITH &&
     ) WHERE (status <> 'CANCELLED');
+=======
+    booked_count    int          NOT NULL DEFAULT 0 CHECK (booked_count >= 0),
+    status          varchar(32)  NOT NULL CHECK (status IN ('SCHEDULED', 'CANCELLED')),
+    created_at      timestamptz  NOT NULL DEFAULT now(),
+    updated_at      timestamptz  NOT NULL DEFAULT now(),
+    version         bigint       NOT NULL DEFAULT 0,
+    CONSTRAINT chk_session_dates CHECK (ends_at > starts_at),
+    CONSTRAINT chk_session_capacity CHECK (booked_count <= capacity)
+);
+
+-- I6: no two non-cancelled sessions overlap for the same instructor
+ALTER TABLE class_session
+    ADD CONSTRAINT excl_session_instructor_overlap
+    EXCLUDE USING gist (
+        instructor_id WITH =,
+        tstzrange(starts_at, ends_at, '[)') WITH &&
+    ) WHERE (status != 'CANCELLED')
+    DEFERRABLE INITIALLY DEFERRED;
+
+-- I7: no two non-cancelled sessions overlap in the same room
+ALTER TABLE class_session
+    ADD CONSTRAINT excl_session_room_overlap
+    EXCLUDE USING gist (
+        room_id WITH =,
+        tstzrange(starts_at, ends_at, '[)') WITH &&
+    ) WHERE (status != 'CANCELLED')
+    DEFERRABLE INITIALLY DEFERRED;
+>>>>>>> 6708a22 (GYM-21: Database constraint violation translator (#13))

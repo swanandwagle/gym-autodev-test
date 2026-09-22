@@ -1,10 +1,18 @@
+<<<<<<< HEAD
 -- Trigger function: sets updated_at = now() on every UPDATE
 CREATE OR REPLACE FUNCTION set_updated_at()
 RETURNS TRIGGER LANGUAGE plpgsql AS $$
+=======
+-- V5: updated_at trigger applied to all mutable tables
+
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS TRIGGER AS $$
+>>>>>>> 6708a22 (GYM-21: Database constraint violation translator (#13))
 BEGIN
     NEW.updated_at = now();
     RETURN NEW;
 END;
+<<<<<<< HEAD
 $$;
 
 -- Apply trigger to every mutable table (append-only tables are excluded)
@@ -47,3 +55,25 @@ CREATE TRIGGER trg_waitlist_entry_updated_at
 CREATE TRIGGER trg_job_run_updated_at
     BEFORE UPDATE ON job_run
     FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+=======
+$$ LANGUAGE plpgsql;
+
+DO $$
+DECLARE
+    tbl text;
+BEGIN
+    FOREACH tbl IN ARRAY ARRAY[
+        'member', 'membership_plan', 'membership',
+        'instructor', 'room', 'class_type', 'class_session',
+        'booking', 'waitlist_entry'
+    ] LOOP
+        EXECUTE format(
+            'CREATE TRIGGER trg_%s_updated_at
+             BEFORE UPDATE ON %I
+             FOR EACH ROW EXECUTE FUNCTION set_updated_at()',
+            tbl, tbl
+        );
+    END LOOP;
+END;
+$$;
+>>>>>>> 6708a22 (GYM-21: Database constraint violation translator (#13))
