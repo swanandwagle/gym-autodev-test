@@ -92,6 +92,9 @@ public enum ErrorCode {
     /** The session has been cancelled and cannot be booked. */
     SESSION_CANCELLED(HttpStatus.CONFLICT),
 
+    /** The session has already been cancelled and cannot be cancelled again. */
+    SESSION_ALREADY_CANCELLED(HttpStatus.CONFLICT),
+
     /** The session has already started and is no longer bookable. */
     SESSION_NOT_BOOKABLE(HttpStatus.CONFLICT),
 

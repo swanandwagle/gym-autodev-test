@@ -1,8 +1,10 @@
 package com.studio.booking.catalog.api;
 
+import com.studio.booking.catalog.api.request.CancelSessionRequest;
 import com.studio.booking.catalog.api.request.CreateClassSessionRequest;
 import com.studio.booking.catalog.api.request.CreateRecurringSessionsRequest;
 import com.studio.booking.catalog.api.request.PatchClassSessionRequest;
+import com.studio.booking.catalog.api.response.CancelSessionResponse;
 import com.studio.booking.catalog.api.response.ClassSessionScheduleResponse;
 import com.studio.booking.catalog.api.response.CreateRecurringSessionsResponse;
 import com.studio.booking.catalog.api.response.PatchClassSessionResponse;
@@ -143,6 +145,33 @@ public class ClassSessionController {
             @PathVariable @ValidUuid String id,
             @Valid @RequestBody PatchClassSessionRequest request) {
         PatchClassSessionResponse response = service.patch(UUID.fromString(id), request);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(
+        summary = "Cancel a scheduled class session",
+        description = """
+            Cancel a SCHEDULED session. Cascades to:
+            - All BOOKED bookings become CANCELLED with cancellationType: SESSION_CANCELLED
+            - All credits are refunded to members (no late-cancel window applies for session cancellation)
+            - All WAITING waitlist entries become EXPIRED
+            - One notification per affected member
+
+            Bookings already CHECKED_IN or NO_SHOW are not affected.
+            Sessions that have already started but not completed can be cancelled.
+            """
+    )
+    @ApiResponse(responseCode = "200", description = "Session cancelled successfully")
+    @ApiResponse(responseCode = "404", description = "Session not found")
+    @ApiResponse(responseCode = "409", description = "Conflict (e.g. session already cancelled, already completed)")
+    @ApiResponse(responseCode = "422", description = "Input validation failed (e.g. reason exceeds 255 characters)")
+    public ResponseEntity<CancelSessionResponse> cancel(
+            @PathVariable @ValidUuid String id,
+            @RequestBody(required = false) CancelSessionRequest request) {
+        // Allow cancel with null request body (reason is optional)
+        CancelSessionRequest cancelRequest = request != null ? request : new CancelSessionRequest(null);
+        CancelSessionResponse response = service.cancel(UUID.fromString(id), cancelRequest);
         return ResponseEntity.ok(response);
     }
 }
