@@ -134,6 +134,15 @@ public enum ErrorCode {
     /** The class type is inactive; this operation requires an active class type. */
     CLASS_TYPE_INACTIVE(HttpStatus.CONFLICT),
 
+    /** The instructor email already exists (case-insensitive). */
+    INSTRUCTOR_EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT),
+
+    /** The instructor is inactive; this operation requires an active instructor. */
+    INSTRUCTOR_INACTIVE(HttpStatus.CONFLICT),
+
+    /** The instructor has one or more future scheduled sessions and cannot be deactivated. */
+    INSTRUCTOR_HAS_FUTURE_SESSIONS(HttpStatus.CONFLICT),
+
     /**
      * An idempotency key was reused with different request parameters.
      * (Same key + same member = 200 replay; different params = 409.)
