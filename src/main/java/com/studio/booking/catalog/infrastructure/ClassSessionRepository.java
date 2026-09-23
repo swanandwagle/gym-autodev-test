@@ -1,12 +1,15 @@
 package com.studio.booking.catalog.infrastructure;
 
 import com.studio.booking.catalog.domain.ClassSession;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ClassSessionRepository extends JpaRepository<ClassSession, UUID> {
@@ -31,5 +34,72 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, UUID
 
     @Query("SELECT s FROM ClassSession s WHERE s.roomId = :roomId")
     List<ClassSession> findByRoomId(@Param("roomId") UUID roomId);
+
+    @Query("""
+        SELECT s FROM ClassSession s
+        WHERE s.instructorId = :instructorId
+          AND s.startsAt < :endsAt
+          AND s.endsAt > :startsAt
+          AND s.status != 'CANCELLED'
+          AND s.id != :excludeSessionId
+    """)
+    List<ClassSession> findOverlappingInstructorSessions(
+            @Param("instructorId") UUID instructorId,
+            @Param("startsAt") Instant startsAt,
+            @Param("endsAt") Instant endsAt,
+            @Param("excludeSessionId") UUID excludeSessionId
+    );
+
+    @Query("""
+        SELECT s FROM ClassSession s
+        WHERE s.instructorId = :instructorId
+          AND s.startsAt < :endsAt
+          AND s.endsAt > :startsAt
+          AND s.status != 'CANCELLED'
+    """)
+    List<ClassSession> findOverlappingInstructorSessions(
+            @Param("instructorId") UUID instructorId,
+            @Param("startsAt") Instant startsAt,
+            @Param("endsAt") Instant endsAt
+    );
+
+    @Query("""
+        SELECT s FROM ClassSession s
+        WHERE s.roomId = :roomId
+          AND s.startsAt < :endsAt
+          AND s.endsAt > :startsAt
+          AND s.status != 'CANCELLED'
+          AND s.id != :excludeSessionId
+    """)
+    List<ClassSession> findOverlappingRoomSessions(
+            @Param("roomId") UUID roomId,
+            @Param("startsAt") Instant startsAt,
+            @Param("endsAt") Instant endsAt,
+            @Param("excludeSessionId") UUID excludeSessionId
+    );
+
+    @Query("""
+        SELECT s FROM ClassSession s
+        WHERE s.roomId = :roomId
+          AND s.startsAt < :endsAt
+          AND s.endsAt > :startsAt
+          AND s.status != 'CANCELLED'
+    """)
+    List<ClassSession> findOverlappingRoomSessions(
+            @Param("roomId") UUID roomId,
+            @Param("startsAt") Instant startsAt,
+            @Param("endsAt") Instant endsAt
+    );
+
+    @Query("""
+        SELECT s FROM ClassSession s
+        WHERE s.recurrenceId = :recurrenceId
+        ORDER BY s.startsAt ASC
+    """)
+    List<ClassSession> findByRecurrenceIdOrderByStartsAt(@Param("recurrenceId") UUID recurrenceId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM ClassSession s WHERE s.id = :id")
+    Optional<ClassSession> findByIdWithLock(@Param("id") UUID id);
 }
 

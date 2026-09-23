@@ -92,6 +92,9 @@ public enum ErrorCode {
     /** The session has been cancelled and cannot be booked. */
     SESSION_CANCELLED(HttpStatus.CONFLICT),
 
+    /** The session has already been cancelled and cannot be cancelled again. */
+    SESSION_ALREADY_CANCELLED(HttpStatus.CONFLICT),
+
     /** The session has already started and is no longer bookable. */
     SESSION_NOT_BOOKABLE(HttpStatus.CONFLICT),
 
@@ -155,6 +158,15 @@ public enum ErrorCode {
     /** The room has one or more future scheduled sessions and cannot be deactivated. */
     ROOM_HAS_FUTURE_SESSIONS(HttpStatus.CONFLICT),
 
+    /** A new session would conflict with the instructor's existing session(s). */
+    SESSION_INSTRUCTOR_CONFLICT(HttpStatus.CONFLICT),
+
+    /** A new session would conflict with the room's existing session(s). */
+    SESSION_ROOM_CONFLICT(HttpStatus.CONFLICT),
+
+    /** The proposed session capacity exceeds the room's maximum capacity. */
+    SESSION_CAPACITY_EXCEEDS_ROOM(HttpStatus.CONFLICT),
+
     /**
      * An idempotency key was reused with different request parameters.
      * (Same key + same member = 200 replay; different params = 409.)
@@ -191,6 +203,15 @@ public enum ErrorCode {
     /** Membership cancellation is only allowed for PENDING status; ACTIVE, EXPIRED, or CANCELLED memberships cannot be cancelled. */
     MEMBERSHIP_NOT_CANCELLABLE(HttpStatus.CONFLICT),
 
+    /** The session is not editable; only SCHEDULED sessions can be patched. */
+    SESSION_NOT_EDITABLE(HttpStatus.CONFLICT),
+
+    /** The session has already started and cannot be edited. */
+    SESSION_ALREADY_STARTED(HttpStatus.CONFLICT),
+
+    /** The proposed session capacity is below the current booked count. */
+    SESSION_CAPACITY_BELOW_BOOKED(HttpStatus.CONFLICT),
+
     // -------------------------------------------------------------------------
     // 422 — Input validation failure (request wrong regardless of server state)
     // -------------------------------------------------------------------------
@@ -218,6 +239,15 @@ public enum ErrorCode {
 
     /** The request body contains an unrecognised field. */
     UNKNOWN_FIELD(HttpStatus.UNPROCESSABLE_ENTITY),
+
+    /** The requested date/time is in the past; a future date/time is required. */
+    FUTURE_REQUIRED(HttpStatus.UNPROCESSABLE_ENTITY),
+
+    /** A date range is invalid (e.g. toDate before or equal to fromDate). */
+    INVALID_RANGE(HttpStatus.UNPROCESSABLE_ENTITY),
+
+    /** The recurrence produces no future occurrences after filtering. */
+    RECURRENCE_EMPTY(HttpStatus.UNPROCESSABLE_ENTITY),
 
     // -------------------------------------------------------------------------
     // 500 — Unhandled / internal

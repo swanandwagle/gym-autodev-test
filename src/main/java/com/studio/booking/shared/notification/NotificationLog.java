@@ -7,6 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -43,13 +44,19 @@ public class NotificationLog {
 
     public NotificationLog(UUID memberId, String eventType, String channel,
                            String payload, String triggeredBy) {
+        this(memberId, eventType, channel, payload, triggeredBy, Clock.systemUTC());
+    }
+
+    public NotificationLog(UUID memberId, String eventType, String channel,
+                           String payload, String triggeredBy, Clock clock) {
         this.memberId = memberId;
         this.eventType = eventType;
         this.channel = channel;
         this.payload = payload;
         this.triggeredBy = triggeredBy;
-        this.sentAt = Instant.now();
-        this.createdAt = Instant.now();
+        Instant now = clock.instant();
+        this.sentAt = now;
+        this.createdAt = now;
     }
 
     public UUID getId() { return id; }

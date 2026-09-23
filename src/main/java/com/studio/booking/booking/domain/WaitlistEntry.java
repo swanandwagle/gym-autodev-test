@@ -34,6 +34,9 @@ public class WaitlistEntry {
     @Column(name = "skip_reason")
     private String skipReason;
 
+    @Column(name = "resolved_at")
+    private Instant resolvedAt;
+
     @Column(name = "idempotency_key")
     private String idempotencyKey;
 
@@ -63,6 +66,7 @@ public class WaitlistEntry {
     public String getStatus() { return status; }
     public int getSequenceNo() { return sequenceNo; }
     public String getSkipReason() { return skipReason; }
+    public Instant getResolvedAt() { return resolvedAt; }
     public String getIdempotencyKey() { return idempotencyKey; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
@@ -70,5 +74,6 @@ public class WaitlistEntry {
 
     public void setStatus(String status) { this.status = status; }
     public void setSkipReason(String skipReason) { this.skipReason = skipReason; }
+    public void setResolvedAt(Instant resolvedAt) { this.resolvedAt = resolvedAt; }
     public void setIdempotencyKey(String idempotencyKey) { this.idempotencyKey = idempotencyKey; }
 }
