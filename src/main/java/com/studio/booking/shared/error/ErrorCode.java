@@ -173,6 +173,9 @@ public enum ErrorCode {
     /** A membership plan with this name already exists (case-insensitive). */
     PLAN_NAME_ALREADY_EXISTS(HttpStatus.CONFLICT),
 
+    /** The membership plan is already inactive; cannot deactivate again. */
+    PLAN_ALREADY_INACTIVE(HttpStatus.CONFLICT),
+
     // -------------------------------------------------------------------------
     // 422 — Input validation failure (request wrong regardless of server state)
     // -------------------------------------------------------------------------

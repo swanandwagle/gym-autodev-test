@@ -2,6 +2,8 @@ package com.studio.booking.membership.api;
 
 import com.studio.booking.membership.application.MembershipPlanService;
 import com.studio.booking.membership.domain.MembershipPlan;
+import com.studio.booking.shared.error.ApiException;
+import com.studio.booking.shared.error.ErrorCode;
 import com.studio.booking.shared.error.ErrorEnvelope;
 import com.studio.booking.shared.validation.ValidUuid;
 import com.studio.booking.shared.web.AllowedSortFields;
@@ -201,5 +203,125 @@ public class MembershipPlanController {
             .toList();
 
         return ResponseEntity.ok(PageResponse.of(content, params.getPage(), params.getSize(), planPage.getTotalElements()));
+    }
+
+    @PatchMapping("/{id}")
+    @Operation(
+        summary = "Update a membership plan",
+        description = "Partially updates an existing membership plan. " +
+                      "name: optional, must be unique case-insensitively. " +
+                      "classCredits: tri-state behavior — " +
+                      "omit to leave unchanged, " +
+                      "pass null to make the plan unlimited, " +
+                      "pass a positive integer to set credit count and make it credit-based. " +
+                      "version: required, used for optimistic locking. " +
+                      "Request body must have only these fields; version alone returns 422. " +
+                      "Snapshot isolation: existing memberships snapshotted at creation are unaffected by plan changes."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Membership plan successfully updated",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = MembershipPlanResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "409",
+            description = "Conflict: stale version, name already exists, or plan inactive",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorEnvelope.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "422",
+            description = "Validation error (invalid format, missing version, only version in body, etc.)",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorEnvelope.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Membership plan not found",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorEnvelope.class)
+            )
+        )
+    })
+    public ResponseEntity<MembershipPlanResponse> updatePlan(
+        @PathVariable @ValidUuid UUID id,
+        @RequestBody UpdateMembershipPlanRequest request
+    ) {
+        // Validate that version is present and at least one other field is provided
+        if (request.version() == null) {
+            throw new ApiException(
+                ErrorCode.VALIDATION_FAILED,
+                "version field is required",
+                null
+            );
+        }
+
+        if (!request.hasName() && !request.hasClassCredits()) {
+            throw new ApiException(
+                ErrorCode.VALIDATION_FAILED,
+                "Request body must contain at least one field to update (name or classCredits) in addition to version",
+                null
+            );
+        }
+
+        MembershipPlan plan = planService.updatePlan(id, request);
+        return ResponseEntity.ok(MembershipPlanResponse.from(plan));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(
+        summary = "Deactivate a membership plan",
+        description = "Deactivates an active membership plan. Once deactivated, the plan is no longer available for new memberships " +
+                      "but existing memberships remain valid and functional for bookings. " +
+                      "Deactivated plans do not appear in the default list (includeInactive=false)."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Membership plan successfully deactivated",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = MembershipPlanResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "409",
+            description = "Conflict: plan already inactive",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorEnvelope.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Membership plan not found",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorEnvelope.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "422",
+            description = "Invalid UUID format",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorEnvelope.class)
+            )
+        )
+    })
+    public ResponseEntity<MembershipPlanResponse> deactivatePlan(
+        @PathVariable @ValidUuid UUID id
+    ) {
+        MembershipPlan plan = planService.deactivatePlan(id);
+        return ResponseEntity.ok(MembershipPlanResponse.from(plan));
     }
 }
