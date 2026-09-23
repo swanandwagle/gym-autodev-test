@@ -1,12 +1,15 @@
 package com.studio.booking.catalog.infrastructure;
 
 import com.studio.booking.catalog.domain.ClassSession;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface ClassSessionRepository extends JpaRepository<ClassSession, UUID> {
@@ -94,5 +97,9 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, UUID
         ORDER BY s.startsAt ASC
     """)
     List<ClassSession> findByRecurrenceIdOrderByStartsAt(@Param("recurrenceId") UUID recurrenceId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM ClassSession s WHERE s.id = :id")
+    Optional<ClassSession> findByIdWithLock(@Param("id") UUID id);
 }
 

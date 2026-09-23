@@ -47,6 +47,12 @@ public class ClassSession {
     @Column(nullable = false)
     private String status;
 
+    @Column(name = "cancelled_at")
+    private Instant cancelledAt;
+
+    @Column(name = "cancel_reason", length = 255)
+    private String cancelReason;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -94,12 +100,16 @@ public class ClassSession {
     public int getCapacity() { return capacity; }
     public int getBookedCount() { return bookedCount; }
     public String getStatus() { return status; }
+    public Instant getCancelledAt() { return cancelledAt; }
+    public String getCancelReason() { return cancelReason; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public long getVersion() { return version; }
 
     public void setStatus(String status) { this.status = status; }
     public void setBookedCount(int bookedCount) { this.bookedCount = bookedCount; }
+    public void setCancelledAt(Instant cancelledAt) { this.cancelledAt = cancelledAt; }
+    public void setCancelReason(String cancelReason) { this.cancelReason = cancelReason; }
 
     public void setStartsAt(Instant startsAt) { this.startsAt = startsAt; }
     public void setEndsAt(Instant endsAt) { this.endsAt = endsAt; }

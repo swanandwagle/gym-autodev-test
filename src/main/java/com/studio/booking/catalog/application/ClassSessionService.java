@@ -1,11 +1,16 @@
 package com.studio.booking.catalog.application;
 
+import com.studio.booking.booking.domain.Booking;
+import com.studio.booking.booking.domain.WaitlistEntry;
 import com.studio.booking.booking.infrastructure.BookingRepository;
 import com.studio.booking.booking.infrastructure.WaitlistEntryRepository;
+import com.studio.booking.catalog.api.request.CancelSessionRequest;
 import com.studio.booking.catalog.api.request.CreateClassSessionRequest;
 import com.studio.booking.catalog.api.request.PatchClassSessionRequest;
+import com.studio.booking.catalog.api.response.CancelSessionResponse;
 import com.studio.booking.catalog.api.response.ClassSessionScheduleResponse;
 import com.studio.booking.catalog.api.response.PatchClassSessionResponse;
+import com.studio.booking.membership.application.CreditPort;
 import com.studio.booking.catalog.domain.ClassSession;
 import com.studio.booking.catalog.domain.ClassType;
 import com.studio.booking.catalog.domain.Instructor;
@@ -25,9 +30,13 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class ClassSessionService {
@@ -39,6 +48,7 @@ public class ClassSessionService {
     private final BookingRepository bookingRepository;
     private final WaitlistEntryRepository waitlistEntryRepository;
     private final NotificationLogRepository notificationLogRepository;
+    private final CreditPort creditPort;
     private final Clock clock;
 
     public ClassSessionService(ClassSessionRepository sessionRepository,
@@ -48,6 +58,7 @@ public class ClassSessionService {
                               BookingRepository bookingRepository,
                               WaitlistEntryRepository waitlistEntryRepository,
                               NotificationLogRepository notificationLogRepository,
+                              CreditPort creditPort,
                               Clock clock) {
         this.sessionRepository = sessionRepository;
         this.classTypeRepository = classTypeRepository;
@@ -56,6 +67,7 @@ public class ClassSessionService {
         this.bookingRepository = bookingRepository;
         this.waitlistEntryRepository = waitlistEntryRepository;
         this.notificationLogRepository = notificationLogRepository;
+        this.creditPort = creditPort;
         this.clock = clock;
     }
 
@@ -388,6 +400,99 @@ public class ClassSessionService {
                 0,
                 promotedCount,
                 session.getStatus()
+        );
+    }
+
+    @Transactional(isolation = Isolation.SERIALIZABLE)
+    public CancelSessionResponse cancel(UUID sessionId, CancelSessionRequest request) {
+        Instant now = clock.instant();
+
+        // Load session with pessimistic write lock (lock ordering: session first)
+        ClassSession session = sessionRepository.findByIdWithLock(sessionId)
+                .orElseThrow(() -> new ApiException(ErrorCode.SESSION_NOT_FOUND,
+                        "Session not found"));
+
+        // Status validation
+        if (session.getStatus().equals("CANCELLED")) {
+            throw new ApiException(ErrorCode.SESSION_ALREADY_CANCELLED,
+                    "Session has already been cancelled");
+        }
+        if (session.getEndsAt().isBefore(now)) {
+            throw new ApiException(ErrorCode.SESSION_NOT_EDITABLE,
+                    "Completed sessions cannot be cancelled");
+        }
+
+        // Set cancellation fields
+        session.setStatus("CANCELLED");
+        session.setCancelledAt(now);
+        session.setCancelReason(request.reason());
+        session.setBookedCount(0);
+        sessionRepository.save(session);
+
+        // Get all BOOKED bookings (excluding CHECKED_IN and NO_SHOW)
+        List<Booking> bookedBookings = bookingRepository.findBookedBySessionId(sessionId);
+
+        // Determine if refunds apply (four-hour window: no override for session cancellation)
+        // AC-3 states: four-hour override applies and refunds are always given for session cancellation
+        boolean shouldRefund = true;
+
+        int creditsRefunded = 0;
+        Set<UUID> notifiedMembers = new HashSet<>();
+
+        // Cancel each booking and refund credits (lock ordering: session → membership)
+        for (Booking booking : bookedBookings) {
+            booking.setStatus("CANCELLED");
+            booking.setCancellationType("SESSION_CANCELLED");
+            bookingRepository.save(booking);
+
+            // Refund credits to the membership that was originally charged
+            if (shouldRefund) {
+                creditPort.refund(booking.getMembershipId(), "SESSION_CANCELLED_REFUND");
+                creditsRefunded++;
+            }
+
+            // Write notification (one per unique member)
+            if (!notifiedMembers.contains(booking.getMemberId())) {
+                NotificationLog notif = new NotificationLog(
+                        booking.getMemberId(),
+                        "SESSION_CANCELLED",
+                        "EMAIL",
+                        "{\"sessionId\": \"" + sessionId + "\"}",
+                        "session-cancel",
+                        clock
+                );
+                notificationLogRepository.save(notif);
+                notifiedMembers.add(booking.getMemberId());
+            }
+        }
+
+        // Expire all WAITING entries
+        List<WaitlistEntry> waitingEntries = waitlistEntryRepository.findWaitingBySessionIdOrderBySequence(sessionId);
+        for (WaitlistEntry entry : waitingEntries) {
+            entry.setStatus("EXPIRED");
+            entry.setResolvedAt(now);
+            waitlistEntryRepository.save(entry);
+        }
+
+        return toCancelResponse(session, creditsRefunded);
+    }
+
+    private CancelSessionResponse toCancelResponse(ClassSession session, int creditsRefunded) {
+        int availableSpots = session.getCapacity() - session.getBookedCount();
+        return new CancelSessionResponse(
+                session.getId(),
+                session.getClassTypeId(),
+                session.getInstructorId(),
+                session.getRoomId(),
+                session.getStartsAt(),
+                session.getEndsAt(),
+                session.getCapacity(),
+                session.getBookedCount(),
+                availableSpots,
+                session.getStatus(),
+                session.getCancelledAt(),
+                session.getCancelReason(),
+                creditsRefunded
         );
     }
 }

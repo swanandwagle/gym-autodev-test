@@ -25,6 +25,9 @@ public class Booking {
     @Column(name = "session_id", nullable = false)
     private UUID sessionId;
 
+    @Column(name = "membership_id", nullable = false)
+    private UUID membershipId;
+
     @Column(nullable = false)
     private String status;
 
@@ -60,9 +63,12 @@ public class Booking {
         this.updatedAt = Instant.now();
     }
 
+    public void setSessionId(UUID sessionId) { this.sessionId = sessionId; }
+
     public UUID getId() { return id; }
     public UUID getMemberId() { return memberId; }
     public UUID getSessionId() { return sessionId; }
+    public UUID getMembershipId() { return membershipId; }
     public String getStatus() { return status; }
     public String getSource() { return source; }
     public String getCancellationType() { return cancellationType; }
@@ -72,6 +78,7 @@ public class Booking {
     public Instant getUpdatedAt() { return updatedAt; }
     public long getVersion() { return version; }
 
+    public void setMembershipId(UUID membershipId) { this.membershipId = membershipId; }
     public void setStatus(String status) { this.status = status; }
     public void setCancellationType(String cancellationType) { this.cancellationType = cancellationType; }
     public void setCheckedInBy(String checkedInBy) { this.checkedInBy = checkedInBy; }
