@@ -37,9 +37,11 @@ jobs:
         id: gate
         shell: powershell
         run: |
-          & "$env:ORCHESTRATOR\.venv\Scripts\python.exe" -m orchestrator.cli.dependency_gate_check --project gym-autodev-test
+          $pr_number = "${{ github.event.pull_request.number }}"
+          $extra = if ($pr_number -ne "") { @("--pr", $pr_number) } else { @() }
+          & "$env:ORCHESTRATOR\.venv\Scripts\python.exe" -m orchestrator.cli.dependency_gate_check --project gym-autodev-test @extra
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $result = & "$env:ORCHESTRATOR\.venv\Scripts\python.exe" -m orchestrator.cli.dependency_gate_check --project gym-autodev-test
+          $result = & "$env:ORCHESTRATOR\.venv\Scripts\python.exe" -m orchestrator.cli.dependency_gate_check --project gym-autodev-test @extra
           echo "clear=$result" >> $env:GITHUB_OUTPUT
 
       - name: Run next story
