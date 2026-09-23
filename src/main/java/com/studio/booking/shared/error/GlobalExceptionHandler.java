@@ -323,6 +323,8 @@ public class GlobalExceptionHandler {
             case LATE_CANCEL_NO_REFUND      -> "Late Cancel — No Refund";
             case INSTRUCTOR_SCHEDULE_CONFLICT -> "Instructor Schedule Conflict";
             case ROOM_SCHEDULE_CONFLICT     -> "Room Schedule Conflict";
+            case CLASS_TYPE_NAME_ALREADY_EXISTS -> "Class Type Name Already Exists";
+            case CLASS_TYPE_INACTIVE        -> "Class Type Inactive";
             case IDEMPOTENCY_KEY_CONFLICT   -> "Idempotency Key Conflict";
             case JOB_ALREADY_RUNNING        -> "Job Already Running";
             case VALIDATION_FAILED          -> "Validation Failed";

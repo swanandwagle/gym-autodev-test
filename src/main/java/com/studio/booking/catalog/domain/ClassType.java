@@ -63,4 +63,24 @@ public class ClassType {
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public long getVersion() { return version; }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public void setDurationMinutes(int durationMinutes) {
+        this.durationMinutes = durationMinutes;
+    }
+
+    public void setDefaultCapacity(int defaultCapacity) {
+        this.defaultCapacity = defaultCapacity;
+    }
+
+    public void deactivate() {
+        this.active = false;
+    }
 }

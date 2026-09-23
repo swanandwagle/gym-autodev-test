@@ -31,13 +31,16 @@ CREATE TABLE room (
 -- class_type
 -- -------------------------------------------------------------------------
 CREATE TABLE class_type (
-    id          uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
-    name        varchar(255) NOT NULL,
-    description text,
-    active      boolean      NOT NULL DEFAULT true,
-    created_at  timestamptz  NOT NULL DEFAULT now(),
-    updated_at  timestamptz  NOT NULL DEFAULT now(),
-    version     bigint       NOT NULL DEFAULT 0
+    id                  uuid         PRIMARY KEY DEFAULT gen_random_uuid(),
+    name                varchar(255) NOT NULL,
+    description         text,
+    duration_minutes    int          NOT NULL CONSTRAINT ck_class_type_duration_range CHECK (duration_minutes >= 5 AND duration_minutes <= 480),
+    default_capacity    int          NOT NULL CONSTRAINT ck_class_type_default_capacity_range CHECK (default_capacity >= 1 AND default_capacity <= 500),
+    active              boolean      NOT NULL DEFAULT true,
+    created_at          timestamptz  NOT NULL DEFAULT now(),
+    updated_at          timestamptz  NOT NULL DEFAULT now(),
+    version             bigint       NOT NULL DEFAULT 0,
+    CONSTRAINT ux_class_type_name_case_insensitive UNIQUE (lower(name))
 );
 
 -- -------------------------------------------------------------------------

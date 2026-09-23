@@ -128,6 +128,30 @@ public enum ErrorCode {
     /** The room is already occupied in the requested time slot. */
     ROOM_SCHEDULE_CONFLICT(HttpStatus.CONFLICT),
 
+    /** The class type with this name already exists (case-insensitive). */
+    CLASS_TYPE_NAME_ALREADY_EXISTS(HttpStatus.CONFLICT),
+
+    /** The class type is inactive; this operation requires an active class type. */
+    CLASS_TYPE_INACTIVE(HttpStatus.CONFLICT),
+
+    /** The instructor email already exists (case-insensitive). */
+    INSTRUCTOR_EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT),
+
+    /** The instructor is inactive; this operation requires an active instructor. */
+    INSTRUCTOR_INACTIVE(HttpStatus.CONFLICT),
+
+    /** The instructor has one or more future scheduled sessions and cannot be deactivated. */
+    INSTRUCTOR_HAS_FUTURE_SESSIONS(HttpStatus.CONFLICT),
+
+    /** The room name already exists (case-insensitive). */
+    ROOM_NAME_ALREADY_EXISTS(HttpStatus.CONFLICT),
+
+    /** The room is inactive; this operation requires an active room. */
+    ROOM_INACTIVE(HttpStatus.CONFLICT),
+
+    /** The room has one or more future scheduled sessions and cannot be deactivated. */
+    ROOM_HAS_FUTURE_SESSIONS(HttpStatus.CONFLICT),
+
     /**
      * An idempotency key was reused with different request parameters.
      * (Same key + same member = 200 replay; different params = 409.)
@@ -153,8 +177,8 @@ public enum ErrorCode {
     /** Bean-validation failure; always includes errors[]. */
     VALIDATION_FAILED(HttpStatus.UNPROCESSABLE_ENTITY),
 
-    /** Input field exceeds maximum length. */
-    TOO_LONG(HttpStatus.UNPROCESSABLE_ENTITY),
+    /** A numeric value is outside the allowed range. */
+    OUT_OF_RANGE(HttpStatus.UNPROCESSABLE_ENTITY),
 
     /** A date or time range is logically invalid (e.g. end before start). */
     INVALID_DATE_RANGE(HttpStatus.UNPROCESSABLE_ENTITY),
