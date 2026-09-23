@@ -85,4 +85,12 @@ public class Membership {
     public void setCreditsRemaining(Integer creditsRemaining) {
         this.creditsRemaining = creditsRemaining;
     }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 }

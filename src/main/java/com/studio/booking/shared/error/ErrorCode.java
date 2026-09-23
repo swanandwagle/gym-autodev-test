@@ -185,6 +185,9 @@ public enum ErrorCode {
     /** The requested startsAt is before the current active membership's expiresAt. */
     MEMBERSHIP_START_BEFORE_CURRENT_EXPIRY(HttpStatus.CONFLICT),
 
+    /** Membership cancellation is only allowed for PENDING status; ACTIVE, EXPIRED, or CANCELLED memberships cannot be cancelled. */
+    MEMBERSHIP_NOT_CANCELLABLE(HttpStatus.CONFLICT),
+
     // -------------------------------------------------------------------------
     // 422 — Input validation failure (request wrong regardless of server state)
     // -------------------------------------------------------------------------

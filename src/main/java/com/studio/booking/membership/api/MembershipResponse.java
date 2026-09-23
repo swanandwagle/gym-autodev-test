@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.studio.booking.membership.domain.Membership;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -52,11 +53,16 @@ public record MembershipResponse(
 ) {
 
     public static MembershipResponse from(Membership membership) {
+        return fromWithClock(membership, Clock.systemUTC());
+    }
+
+    public static MembershipResponse fromWithClock(Membership membership, Clock clock) {
+        String effectiveStatus = computeEffectiveStatus(membership, clock);
         return new MembershipResponse(
             membership.getId(),
             membership.getMemberId(),
             membership.getPlanId(),
-            membership.getStatus(),
+            effectiveStatus,
             membership.isUnlimited(),
             membership.getCreditsInitial(),
             membership.getCreditsRemaining(),
@@ -66,5 +72,24 @@ public record MembershipResponse(
             membership.getUpdatedAt(),
             membership.getVersion()
         );
+    }
+
+    private static String computeEffectiveStatus(Membership membership, Clock clock) {
+        String storedStatus = membership.getStatus();
+        Instant now = Instant.now(clock);
+
+        if ("ACTIVE".equals(storedStatus)) {
+            if (now.isAfter(membership.getExpiresAt()) || now.equals(membership.getExpiresAt())) {
+                return "EXPIRED";
+            }
+            return "ACTIVE";
+        } else if ("PENDING".equals(storedStatus)) {
+            if (now.isAfter(membership.getStartsAt()) || now.equals(membership.getStartsAt())) {
+                return "ACTIVE";
+            }
+            return "PENDING";
+        }
+
+        return storedStatus;
     }
 }

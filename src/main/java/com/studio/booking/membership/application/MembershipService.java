@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -148,6 +149,54 @@ public class MembershipService {
             actualStartsAt,
             expiresAt
         );
+
+        return membershipRepository.save(membership);
+    }
+
+    public Membership getMembership(UUID membershipId) {
+        return membershipRepository.findById(membershipId)
+            .orElseThrow(() -> new ApiException(
+                ErrorCode.MEMBERSHIP_NOT_FOUND,
+                "No membership exists for the given ID",
+                null
+            ));
+    }
+
+    public List<Membership> getMemberHistory(UUID memberId, List<String> statusFilter) {
+        // Verify member exists
+        memberRepository.findById(memberId)
+            .orElseThrow(() -> new ApiException(
+                ErrorCode.MEMBER_NOT_FOUND,
+                "No member exists for the given ID",
+                null
+            ));
+
+        if (statusFilter != null && !statusFilter.isEmpty()) {
+            return membershipRepository.findByMemberIdAndStatusInOrderByStartsAtDesc(memberId, statusFilter);
+        } else {
+            return membershipRepository.findByMemberIdOrderByStartsAtDesc(memberId);
+        }
+    }
+
+    @Transactional
+    public Membership cancelMembership(UUID membershipId) {
+        Membership membership = membershipRepository.findById(membershipId)
+            .orElseThrow(() -> new ApiException(
+                ErrorCode.MEMBERSHIP_NOT_FOUND,
+                "No membership exists for the given ID",
+                null
+            ));
+
+        if (!"PENDING".equals(membership.getStatus())) {
+            throw new ApiException(
+                ErrorCode.MEMBERSHIP_NOT_CANCELLABLE,
+                "Membership cancellation is only allowed for PENDING status; current status is " + membership.getStatus(),
+                null
+            );
+        }
+
+        membership.setStatus("CANCELLED");
+        membership.setUpdatedAt(Instant.now(clock));
 
         return membershipRepository.save(membership);
     }
