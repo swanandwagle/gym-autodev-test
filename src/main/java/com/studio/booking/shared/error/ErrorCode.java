@@ -128,6 +128,12 @@ public enum ErrorCode {
     /** The room is already occupied in the requested time slot. */
     ROOM_SCHEDULE_CONFLICT(HttpStatus.CONFLICT),
 
+    /** The class type with this name already exists (case-insensitive). */
+    CLASS_TYPE_NAME_ALREADY_EXISTS(HttpStatus.CONFLICT),
+
+    /** The class type is inactive; this operation requires an active class type. */
+    CLASS_TYPE_INACTIVE(HttpStatus.CONFLICT),
+
     /**
      * An idempotency key was reused with different request parameters.
      * (Same key + same member = 200 replay; different params = 409.)
