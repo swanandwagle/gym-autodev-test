@@ -231,6 +231,12 @@ public enum ErrorCode {
     /** The requested date/time is in the past; a future date/time is required. */
     FUTURE_REQUIRED(HttpStatus.UNPROCESSABLE_ENTITY),
 
+    /** A date range is invalid (e.g. toDate before or equal to fromDate). */
+    INVALID_RANGE(HttpStatus.UNPROCESSABLE_ENTITY),
+
+    /** The recurrence produces no future occurrences after filtering. */
+    RECURRENCE_EMPTY(HttpStatus.UNPROCESSABLE_ENTITY),
+
     // -------------------------------------------------------------------------
     // 500 — Unhandled / internal
     // -------------------------------------------------------------------------

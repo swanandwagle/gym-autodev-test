@@ -57,5 +57,12 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, UUID
             @Param("startsAt") Instant startsAt,
             @Param("endsAt") Instant endsAt
     );
+
+    @Query("""
+        SELECT s FROM ClassSession s
+        WHERE s.recurrenceId = :recurrenceId
+        ORDER BY s.startsAt ASC
+    """)
+    List<ClassSession> findByRecurrenceIdOrderByStartsAt(@Param("recurrenceId") UUID recurrenceId);
 }
 
