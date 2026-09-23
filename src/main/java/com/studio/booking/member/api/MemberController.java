@@ -7,6 +7,7 @@ import com.studio.booking.shared.error.ErrorCode;
 import com.studio.booking.shared.error.ErrorEnvelope;
 import com.studio.booking.shared.error.FieldError;
 import com.studio.booking.shared.validation.ValidUuid;
+import jakarta.servlet.http.HttpServletRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -177,6 +178,113 @@ public class MemberController {
             );
         }
         Member member = memberService.updateMember(id, request);
+        return ResponseEntity.ok(MemberResponse.from(member));
+    }
+
+    @PostMapping("/{id}/suspend")
+    @Operation(
+        summary = "Suspend a member",
+        description = "Suspends an active member, preventing further transactions. " +
+                      "Suspension reason is optional and limited to 255 characters. " +
+                      "Can only suspend ACTIVE members; suspending an already-suspended member returns 409."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Member successfully suspended",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = MemberResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Member not found",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorEnvelope.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "409",
+            description = "Member already suspended",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorEnvelope.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "422",
+            description = "Validation error (reason too long)",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorEnvelope.class)
+            )
+        )
+    })
+    public ResponseEntity<MemberResponse> suspendMember(
+        @PathVariable @ValidUuid UUID id,
+        @RequestBody(required = false) SuspendMemberRequest request,
+        HttpServletRequest httpRequest
+    ) {
+        String reason = null;
+        if (request != null && request.reason() != null) {
+            reason = request.reason();
+            if (reason.length() > 255) {
+                throw new ApiException(
+                    ErrorCode.TOO_LONG,
+                    "Suspension reason exceeds maximum length of 255 characters",
+                    List.of(
+                        FieldError.of(
+                            "reason",
+                            "TOO_LONG",
+                            "Reason must not exceed 255 characters"
+                        )
+                    )
+                );
+            }
+        }
+        Member member = memberService.suspendMember(id, reason);
+        return ResponseEntity.ok(MemberResponse.from(member));
+    }
+
+    @PostMapping("/{id}/reactivate")
+    @Operation(
+        summary = "Reactivate a suspended member",
+        description = "Reactivates a suspended member, allowing transactions to resume. " +
+                      "Can only reactivate SUSPENDED members; reactivating an active member returns 409."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Member successfully reactivated",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = MemberResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Member not found",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorEnvelope.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "409",
+            description = "Member is not suspended",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorEnvelope.class)
+            )
+        )
+    })
+    public ResponseEntity<MemberResponse> reactivateMember(
+        @PathVariable @ValidUuid UUID id,
+        @RequestBody(required = false) ReactivateMemberRequest request
+    ) {
+        Member member = memberService.reactivateMember(id);
         return ResponseEntity.ok(MemberResponse.from(member));
     }
 }

@@ -989,4 +989,405 @@ class MemberControllerIntegrationTest {
         assertThat(updated.joinedAt()).isEqualTo(joinedAtInitial);
         assertThat(updated.updatedAt()).isAfter(updatedAtInitial);
     }
+
+    // =========================================================================
+    // GYM-27: Suspend and reactivate endpoints
+    // =========================================================================
+
+    @Test
+    void test_ac1_suspend_active_member_returns_200_sets_status_reason_suspended_at() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "suspend@example.com",
+            "Test Suspend",
+            null
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        SuspendMemberRequest suspendRequest = new SuspendMemberRequest("STAFF");
+        MvcResult suspendResult = mockMvc.perform(post("/api/v1/members/{id}/suspend", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(suspendRequest)))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        MemberResponse suspended = objectMapper.readValue(
+            suspendResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        assertThat(suspended.status()).isEqualTo("SUSPENDED");
+        assertThat(suspended.suspensionReason()).isEqualTo("STAFF");
+        assertThat(suspended.suspendedAt()).isNotNull();
+    }
+
+    @Test
+    void test_ac1_suspend_advances_version_and_updated_at() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "version@example.com",
+            "Test Version",
+            null
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        long originalVersion = registered.version();
+        java.time.Instant originalUpdatedAt = registered.updatedAt();
+
+        SuspendMemberRequest suspendRequest = new SuspendMemberRequest("STAFF");
+        MvcResult suspendResult = mockMvc.perform(post("/api/v1/members/{id}/suspend", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(suspendRequest)))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        MemberResponse suspended = objectMapper.readValue(
+            suspendResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        assertThat(suspended.version()).isGreaterThan(originalVersion);
+        assertThat(suspended.updatedAt()).isAfterOrEqualTo(originalUpdatedAt);
+    }
+
+    @Test
+    void test_ac2_suspend_already_suspended_returns_409() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "already@example.com",
+            "Test Already",
+            null
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        SuspendMemberRequest suspendRequest = new SuspendMemberRequest("STAFF");
+        mockMvc.perform(post("/api/v1/members/{id}/suspend", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(suspendRequest)))
+            .andExpect(status().isOk());
+
+        MvcResult result = mockMvc.perform(post("/api/v1/members/{id}/suspend", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(suspendRequest)))
+            .andExpect(status().isConflict())
+            .andReturn();
+
+        ErrorEnvelope error = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            ErrorEnvelope.class
+        );
+
+        assertThat(error.code()).isEqualTo(ErrorCode.MEMBER_ALREADY_SUSPENDED);
+        assertThat(error.status()).isEqualTo(409);
+    }
+
+    @Test
+    void test_ac3_reactivate_suspended_member_clears_reason_and_suspended_at() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "reactivate@example.com",
+            "Test Reactivate",
+            null
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        SuspendMemberRequest suspendRequest = new SuspendMemberRequest("STAFF");
+        mockMvc.perform(post("/api/v1/members/{id}/suspend", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(suspendRequest)))
+            .andExpect(status().isOk());
+
+        ReactivateMemberRequest reactivateRequest = new ReactivateMemberRequest();
+        MvcResult reactivateResult = mockMvc.perform(post("/api/v1/members/{id}/reactivate", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(reactivateRequest)))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        MemberResponse reactivated = objectMapper.readValue(
+            reactivateResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        assertThat(reactivated.status()).isEqualTo("ACTIVE");
+        assertThat(reactivated.suspensionReason()).isNull();
+        assertThat(reactivated.suspendedAt()).isNull();
+    }
+
+    @Test
+    void test_ac4_reactivate_active_member_returns_409() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "active@example.com",
+            "Test Active",
+            null
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        ReactivateMemberRequest reactivateRequest = new ReactivateMemberRequest();
+        MvcResult result = mockMvc.perform(post("/api/v1/members/{id}/reactivate", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(reactivateRequest)))
+            .andExpect(status().isConflict())
+            .andReturn();
+
+        ErrorEnvelope error = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            ErrorEnvelope.class
+        );
+
+        assertThat(error.code()).isEqualTo(ErrorCode.MEMBER_NOT_SUSPENDED);
+        assertThat(error.status()).isEqualTo(409);
+    }
+
+    @Test
+    void test_ac5_suspend_unknown_member_returns_404() throws Exception {
+        String unknownId = "00000000-0000-0000-0000-000000000000";
+        SuspendMemberRequest suspendRequest = new SuspendMemberRequest("STAFF");
+
+        MvcResult result = mockMvc.perform(post("/api/v1/members/{id}/suspend", unknownId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(suspendRequest)))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+        ErrorEnvelope error = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            ErrorEnvelope.class
+        );
+
+        assertThat(error.code()).isEqualTo(ErrorCode.MEMBER_NOT_FOUND);
+        assertThat(error.status()).isEqualTo(404);
+    }
+
+    @Test
+    void test_ac5_reactivate_unknown_member_returns_404() throws Exception {
+        String unknownId = "00000000-0000-0000-0000-000000000000";
+        ReactivateMemberRequest reactivateRequest = new ReactivateMemberRequest();
+
+        MvcResult result = mockMvc.perform(post("/api/v1/members/{id}/reactivate", unknownId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(reactivateRequest)))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+        ErrorEnvelope error = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            ErrorEnvelope.class
+        );
+
+        assertThat(error.code()).isEqualTo(ErrorCode.MEMBER_NOT_FOUND);
+        assertThat(error.status()).isEqualTo(404);
+    }
+
+    @Test
+    void test_ac6_suspend_with_reason_over_255_chars_returns_422_too_long() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "toolong@example.com",
+            "Test Too Long",
+            null
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        String longReason = "a".repeat(256);
+        SuspendMemberRequest suspendRequest = new SuspendMemberRequest(longReason);
+
+        MvcResult result = mockMvc.perform(post("/api/v1/members/{id}/suspend", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(suspendRequest)))
+            .andExpect(status().isUnprocessableEntity())
+            .andReturn();
+
+        ErrorEnvelope error = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            ErrorEnvelope.class
+        );
+
+        assertThat(error.code()).isEqualTo(ErrorCode.TOO_LONG);
+        assertThat(error.status()).isEqualTo(422);
+    }
+
+    @Test
+    void test_ac6_suspend_without_reason_succeeds() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "noreason@example.com",
+            "Test No Reason",
+            null
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        MvcResult suspendResult = mockMvc.perform(post("/api/v1/members/{id}/suspend", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{}"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        MemberResponse suspended = objectMapper.readValue(
+            suspendResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        assertThat(suspended.status()).isEqualTo("SUSPENDED");
+        assertThat(suspended.suspensionReason()).isNull();
+    }
+
+    @Test
+    void test_ac8_staff_vs_no_show_reason_distinguishable() throws Exception {
+        RegisterMemberRequest request1 = new RegisterMemberRequest(
+            "staff@example.com",
+            "Staff Suspend",
+            null
+        );
+        MvcResult result1 = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request1)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse member1 = objectMapper.readValue(
+            result1.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        RegisterMemberRequest request2 = new RegisterMemberRequest(
+            "noshow@example.com",
+            "NoShow Suspend",
+            null
+        );
+        MvcResult result2 = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request2)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse member2 = objectMapper.readValue(
+            result2.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        SuspendMemberRequest staffRequest = new SuspendMemberRequest("STAFF");
+        MvcResult suspendStaffResult = mockMvc.perform(post("/api/v1/members/{id}/suspend", member1.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(staffRequest)))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        SuspendMemberRequest noShowRequest = new SuspendMemberRequest("NO_SHOW_LIMIT");
+        MvcResult suspendNoShowResult = mockMvc.perform(post("/api/v1/members/{id}/suspend", member2.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(noShowRequest)))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        MemberResponse suspendedByStaff = objectMapper.readValue(
+            suspendStaffResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        MemberResponse suspendedByNoShow = objectMapper.readValue(
+            suspendNoShowResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        assertThat(suspendedByStaff.suspensionReason()).isEqualTo("STAFF");
+        assertThat(suspendedByNoShow.suspensionReason()).isEqualTo("NO_SHOW_LIMIT");
+    }
+
+    @Test
+    void test_ac9_reactivated_member_can_book_again() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "rebook@example.com",
+            "Test Rebook",
+            null
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        SuspendMemberRequest suspendRequest = new SuspendMemberRequest("NO_SHOW_LIMIT");
+        mockMvc.perform(post("/api/v1/members/{id}/suspend", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(suspendRequest)))
+            .andExpect(status().isOk());
+
+        ReactivateMemberRequest reactivateRequest = new ReactivateMemberRequest();
+        MvcResult reactivateResult = mockMvc.perform(post("/api/v1/members/{id}/reactivate", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(reactivateRequest)))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        MemberResponse reactivated = objectMapper.readValue(
+            reactivateResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        assertThat(reactivated.status()).isEqualTo("ACTIVE");
+        assertThat(reactivated.suspensionReason()).isNull();
+    }
 }

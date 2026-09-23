@@ -88,4 +88,42 @@ public class MemberService {
 
         return memberRepository.save(member);
     }
+
+    @Transactional
+    public Member suspendMember(UUID id, String reason) {
+        Member member = memberRepository.findById(id)
+            .orElseThrow(() -> new ApiException(
+                ErrorCode.MEMBER_NOT_FOUND,
+                "Member not found with id: " + id
+            ));
+
+        if ("SUSPENDED".equals(member.getStatus())) {
+            throw new ApiException(
+                ErrorCode.MEMBER_ALREADY_SUSPENDED,
+                "Member is already suspended"
+            );
+        }
+
+        member.suspendStatus(reason, clock);
+        return memberRepository.save(member);
+    }
+
+    @Transactional
+    public Member reactivateMember(UUID id) {
+        Member member = memberRepository.findById(id)
+            .orElseThrow(() -> new ApiException(
+                ErrorCode.MEMBER_NOT_FOUND,
+                "Member not found with id: " + id
+            ));
+
+        if (!"SUSPENDED".equals(member.getStatus())) {
+            throw new ApiException(
+                ErrorCode.MEMBER_NOT_SUSPENDED,
+                "Member is not suspended"
+            );
+        }
+
+        member.reactivateStatus();
+        return memberRepository.save(member);
+    }
 }
