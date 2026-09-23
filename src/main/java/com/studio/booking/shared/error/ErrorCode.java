@@ -176,6 +176,15 @@ public enum ErrorCode {
     /** The membership plan is already inactive; cannot deactivate again. */
     PLAN_ALREADY_INACTIVE(HttpStatus.CONFLICT),
 
+    /** The membership plan is inactive; this operation requires an active plan. */
+    PLAN_INACTIVE(HttpStatus.CONFLICT),
+
+    /** A member already has one ACTIVE and one PENDING membership; cannot queue a third. */
+    MEMBERSHIP_ALREADY_QUEUED(HttpStatus.CONFLICT),
+
+    /** The requested startsAt is before the current active membership's expiresAt. */
+    MEMBERSHIP_START_BEFORE_CURRENT_EXPIRY(HttpStatus.CONFLICT),
+
     // -------------------------------------------------------------------------
     // 422 — Input validation failure (request wrong regardless of server state)
     // -------------------------------------------------------------------------

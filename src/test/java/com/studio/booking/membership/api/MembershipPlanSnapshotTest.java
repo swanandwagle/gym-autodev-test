@@ -107,6 +107,7 @@ class MembershipPlanSnapshotTest {
             "ACTIVE",
             false,
             10,
+            10,
             startsAt,
             expiresAt
         );
@@ -114,6 +115,7 @@ class MembershipPlanSnapshotTest {
 
         // Verify membership was created with 10 credits
         Membership created = membershipRepository.findById(membership.getId()).orElseThrow();
+        assertThat(created.getCreditsInitial()).isEqualTo(10);
         assertThat(created.getCreditsRemaining()).isEqualTo(10);
 
         // Now update the plan to 20 credits
@@ -179,6 +181,7 @@ class MembershipPlanSnapshotTest {
             "ACTIVE",
             false,
             15,
+            15,
             startsAt,
             expiresAt
         );
@@ -187,6 +190,7 @@ class MembershipPlanSnapshotTest {
         // Verify membership is credit-based
         Membership created = membershipRepository.findById(membership.getId()).orElseThrow();
         assertThat(created.isUnlimited()).isFalse();
+        assertThat(created.getCreditsInitial()).isEqualTo(15);
         assertThat(created.getCreditsRemaining()).isEqualTo(15);
 
         // Convert plan to unlimited
@@ -253,6 +257,7 @@ class MembershipPlanSnapshotTest {
             "ACTIVE",
             false,
             10,
+            10,
             startsAt,
             expiresAt
         );
@@ -317,6 +322,7 @@ class MembershipPlanSnapshotTest {
             "ACTIVE",
             false,
             10,
+            10,
             startsAt,
             expiresAt
         );
@@ -340,6 +346,7 @@ class MembershipPlanSnapshotTest {
         // (in a real booking, this would be decremented from the membership's 10-credit balance)
 
         Membership afterUpdate = membershipRepository.findById(membership.getId()).orElseThrow();
+        assertThat(afterUpdate.getCreditsInitial()).isEqualTo(10);
         assertThat(afterUpdate.getCreditsRemaining()).isEqualTo(10);
 
         // Plan should have been updated to 20
