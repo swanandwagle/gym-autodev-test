@@ -4,7 +4,7 @@ import com.studio.booking.member.domain.Member;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 
-@Schema(description = "Member registration response")
+@Schema(description = "Member response")
 public record MemberResponse(
     @Schema(description = "Member unique identifier", example = "550e8400-e29b-41d4-a716-446655440000")
     String id,
@@ -27,6 +27,12 @@ public record MemberResponse(
     @Schema(description = "Member join date/time in UTC", example = "2026-09-23T10:00:00Z")
     Instant joinedAt,
 
+    @Schema(description = "Member creation date/time in UTC (immutable)", example = "2026-09-23T10:00:00Z")
+    Instant createdAt,
+
+    @Schema(description = "Member last update date/time in UTC", example = "2026-09-23T10:00:00Z")
+    Instant updatedAt,
+
     @Schema(description = "Optimistic lock version", example = "0")
     long version
 ) {
@@ -39,6 +45,8 @@ public record MemberResponse(
             member.getStatus(),
             member.getSuspensionReason(),
             member.getJoinedAt(),
+            member.getCreatedAt(),
+            member.getUpdatedAt(),
             member.getVersion()
         );
     }
