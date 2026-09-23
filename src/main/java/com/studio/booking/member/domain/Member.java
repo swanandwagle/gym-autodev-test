@@ -34,6 +34,9 @@ public class Member {
     @Column(name = "suspension_reason")
     private String suspensionReason;
 
+    @Column(name = "suspended_at")
+    private Instant suspendedAt;
+
     @Column(name = "joined_at", nullable = false)
     private Instant joinedAt;
 
@@ -65,6 +68,7 @@ public class Member {
     public String getPhone() { return phone; }
     public String getStatus() { return status; }
     public String getSuspensionReason() { return suspensionReason; }
+    public Instant getSuspendedAt() { return suspendedAt; }
     public Instant getJoinedAt() { return joinedAt; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
@@ -73,4 +77,16 @@ public class Member {
     public void setEmail(String email) { this.email = email; }
     public void setFullName(String fullName) { this.fullName = fullName; }
     public void setPhone(String phone) { this.phone = phone; }
+
+    public void suspendStatus(String reason, Clock clock) {
+        this.status = "SUSPENDED";
+        this.suspensionReason = reason;
+        this.suspendedAt = Instant.now(clock);
+    }
+
+    public void reactivateStatus() {
+        this.status = "ACTIVE";
+        this.suspensionReason = null;
+        this.suspendedAt = null;
+    }
 }

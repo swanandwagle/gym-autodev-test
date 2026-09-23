@@ -24,6 +24,9 @@ public record MemberResponse(
     @Schema(description = "Suspension reason (null if not suspended)")
     String suspensionReason,
 
+    @Schema(description = "Suspension date/time in UTC (null if not suspended)", example = "2026-09-23T10:00:00Z")
+    Instant suspendedAt,
+
     @Schema(description = "Member join date/time in UTC", example = "2026-09-23T10:00:00Z")
     Instant joinedAt,
 
@@ -44,6 +47,7 @@ public record MemberResponse(
             member.getPhone(),
             member.getStatus(),
             member.getSuspensionReason(),
+            member.getSuspendedAt(),
             member.getJoinedAt(),
             member.getCreatedAt(),
             member.getUpdatedAt(),
