@@ -137,12 +137,24 @@ public enum ErrorCode {
     /** The scheduled job is already running; concurrent execution is not allowed. */
     JOB_ALREADY_RUNNING(HttpStatus.CONFLICT),
 
+    /** A member with this email address already exists (case-insensitive). */
+    MEMBER_EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT),
+
+    /** The member is already suspended; cannot suspend again. */
+    MEMBER_ALREADY_SUSPENDED(HttpStatus.CONFLICT),
+
+    /** The member is not suspended; cannot reactivate an active member. */
+    MEMBER_NOT_SUSPENDED(HttpStatus.CONFLICT),
+
     // -------------------------------------------------------------------------
     // 422 — Input validation failure (request wrong regardless of server state)
     // -------------------------------------------------------------------------
 
     /** Bean-validation failure; always includes errors[]. */
     VALIDATION_FAILED(HttpStatus.UNPROCESSABLE_ENTITY),
+
+    /** Input field exceeds maximum length. */
+    TOO_LONG(HttpStatus.UNPROCESSABLE_ENTITY),
 
     /** A date or time range is logically invalid (e.g. end before start). */
     INVALID_DATE_RANGE(HttpStatus.UNPROCESSABLE_ENTITY),
