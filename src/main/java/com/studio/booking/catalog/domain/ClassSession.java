@@ -29,6 +29,9 @@ public class ClassSession {
     @Column(name = "room_id", nullable = false)
     private UUID roomId;
 
+    @Column(name = "recurrence_id")
+    private UUID recurrenceId;
+
     @Column(name = "starts_at", nullable = false)
     private Instant startsAt;
 
@@ -57,14 +60,20 @@ public class ClassSession {
 
     public ClassSession(UUID classTypeId, UUID instructorId, UUID roomId,
                         Instant startsAt, Instant endsAt, int capacity) {
-        this(classTypeId, instructorId, roomId, startsAt, endsAt, capacity, Clock.systemUTC());
+        this(classTypeId, instructorId, roomId, startsAt, endsAt, capacity, null, Clock.systemUTC());
     }
 
     public ClassSession(UUID classTypeId, UUID instructorId, UUID roomId,
                         Instant startsAt, Instant endsAt, int capacity, Clock clock) {
+        this(classTypeId, instructorId, roomId, startsAt, endsAt, capacity, null, clock);
+    }
+
+    public ClassSession(UUID classTypeId, UUID instructorId, UUID roomId,
+                        Instant startsAt, Instant endsAt, int capacity, UUID recurrenceId, Clock clock) {
         this.classTypeId = classTypeId;
         this.instructorId = instructorId;
         this.roomId = roomId;
+        this.recurrenceId = recurrenceId;
         this.startsAt = startsAt;
         this.endsAt = endsAt;
         this.capacity = capacity;
@@ -79,6 +88,7 @@ public class ClassSession {
     public UUID getClassTypeId() { return classTypeId; }
     public UUID getInstructorId() { return instructorId; }
     public UUID getRoomId() { return roomId; }
+    public UUID getRecurrenceId() { return recurrenceId; }
     public Instant getStartsAt() { return startsAt; }
     public Instant getEndsAt() { return endsAt; }
     public int getCapacity() { return capacity; }

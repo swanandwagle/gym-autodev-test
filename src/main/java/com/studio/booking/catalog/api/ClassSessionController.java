@@ -1,8 +1,12 @@
 package com.studio.booking.catalog.api;
 
 import com.studio.booking.catalog.api.request.CreateClassSessionRequest;
+import com.studio.booking.catalog.api.request.CreateRecurringSessionsRequest;
 import com.studio.booking.catalog.api.response.ClassSessionScheduleResponse;
+import com.studio.booking.catalog.api.response.CreateRecurringSessionsResponse;
 import com.studio.booking.catalog.application.ClassSessionService;
+import com.studio.booking.catalog.application.RecurringSessionGenerator;
+import com.studio.booking.catalog.infrastructure.ClassSessionRepository;
 import com.studio.booking.shared.validation.ValidUuid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -12,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -20,9 +25,13 @@ import java.util.UUID;
 public class ClassSessionController {
 
     private final ClassSessionService service;
+    private final RecurringSessionGenerator recurringGenerator;
+    private final ClassSessionRepository sessionRepository;
 
-    public ClassSessionController(ClassSessionService service) {
+    public ClassSessionController(ClassSessionService service, RecurringSessionGenerator recurringGenerator, ClassSessionRepository sessionRepository) {
         this.service = service;
+        this.recurringGenerator = recurringGenerator;
+        this.sessionRepository = sessionRepository;
     }
 
     @PostMapping
@@ -56,5 +65,54 @@ public class ClassSessionController {
     public ResponseEntity<ClassSessionScheduleResponse> getById(@PathVariable @ValidUuid String id) {
         ClassSessionScheduleResponse response = service.getById(UUID.fromString(id));
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/recurring")
+    @Operation(
+        summary = "Create recurring weekly sessions",
+        description = """
+            Generate multiple sessions for a recurring weekly pattern (e.g. Mon/Wed/Fri).
+            Occurrences are filtered to exclude the past. DST transitions are handled per local timezone.
+            Conflicts are detected and either failed (onConflict=FAIL) or skipped (onConflict=SKIP).
+            """
+    )
+    @ApiResponse(responseCode = "201", description = "Sessions created successfully")
+    @ApiResponse(responseCode = "409", description = "Conflict detected with onConflict=FAIL")
+    @ApiResponse(responseCode = "422", description = "Input validation failed")
+    public ResponseEntity<CreateRecurringSessionsResponse> createRecurring(@Valid @RequestBody CreateRecurringSessionsRequest request) {
+        CreateRecurringSessionsResponse response = recurringGenerator.generate(request, null);
+        return ResponseEntity
+                .created(URI.create("/api/v1/sessions/by-recurrence/" + response.recurrenceId()))
+                .body(response);
+    }
+
+    @GetMapping("/by-recurrence/{recurrenceId}")
+    @Operation(summary = "Get all sessions in a recurrence")
+    @ApiResponse(responseCode = "200", description = "Sessions retrieved successfully")
+    @ApiResponse(responseCode = "404", description = "No sessions found for this recurrence ID")
+    @ApiResponse(responseCode = "422", description = "Malformed UUID")
+    public ResponseEntity<List<ClassSessionScheduleResponse>> getByRecurrenceId(@PathVariable @ValidUuid String recurrenceId) {
+        var sessions = sessionRepository.findByRecurrenceIdOrderByStartsAt(UUID.fromString(recurrenceId));
+        if (sessions.isEmpty()) {
+            throw new com.studio.booking.shared.error.ApiException(
+                    com.studio.booking.shared.error.ErrorCode.NOT_FOUND,
+                    "No sessions found for recurrence ID");
+        }
+        var responses = sessions.stream()
+                .map(s -> new ClassSessionScheduleResponse(
+                        s.getId(),
+                        s.getClassTypeId(),
+                        s.getInstructorId(),
+                        s.getRoomId(),
+                        s.getStartsAt(),
+                        s.getEndsAt(),
+                        s.getCapacity(),
+                        s.getBookedCount(),
+                        s.getCapacity() - s.getBookedCount(),
+                        0,
+                        s.getStatus()
+                ))
+                .toList();
+        return ResponseEntity.ok(responses);
     }
 }
