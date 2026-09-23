@@ -6,7 +6,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import jakarta.persistence.Version;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -34,28 +33,21 @@ public class CreditTransaction {
     @Column(name = "balance_after", nullable = false)
     private int balanceAfter;
 
-    @Column(name = "recorded_at", nullable = false)
-    private Instant recordedAt;
-
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
-
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
-
-    @Version
-    private long version;
 
     protected CreditTransaction() {}
 
     public CreditTransaction(UUID membershipId, int delta, String reason, int balanceAfter) {
+        this(membershipId, delta, reason, balanceAfter, Instant.now());
+    }
+
+    public CreditTransaction(UUID membershipId, int delta, String reason, int balanceAfter, Instant createdAt) {
         this.membershipId = membershipId;
         this.delta = delta;
         this.reason = reason;
         this.balanceAfter = balanceAfter;
-        this.recordedAt = Instant.now();
-        this.createdAt = Instant.now();
-        this.updatedAt = Instant.now();
+        this.createdAt = createdAt;
     }
 
     public UUID getId() { return id; }
@@ -65,8 +57,5 @@ public class CreditTransaction {
     public int getDelta() { return delta; }
     public String getReason() { return reason; }
     public int getBalanceAfter() { return balanceAfter; }
-    public Instant getRecordedAt() { return recordedAt; }
     public Instant getCreatedAt() { return createdAt; }
-    public Instant getUpdatedAt() { return updatedAt; }
-    public long getVersion() { return version; }
 }

@@ -14,6 +14,10 @@ import java.util.UUID;
 public interface MembershipRepository extends JpaRepository<Membership, UUID> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT m FROM Membership m WHERE m.id = :id")
+    Optional<Membership> findByIdWithLock(@Param("id") UUID id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT m FROM Membership m WHERE m.memberId = :memberId AND m.status = 'ACTIVE'")
     Optional<Membership> findActiveByMemberIdWithWriteLock(@Param("memberId") UUID memberId);
 

@@ -116,6 +116,9 @@ public enum ErrorCode {
     /** The membership does not have enough credits for this operation. */
     CREDITS_INSUFFICIENT(HttpStatus.CONFLICT),
 
+    /** The membership has no remaining credits and cannot complete this operation. */
+    MEMBERSHIP_NO_CREDITS(HttpStatus.CONFLICT),
+
     /** The session overlaps with another confirmed booking for this member. */
     OVERLAPPING_BOOKING(HttpStatus.CONFLICT),
 
