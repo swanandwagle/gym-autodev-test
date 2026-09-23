@@ -116,6 +116,9 @@ public enum ErrorCode {
     /** The membership does not have enough credits for this operation. */
     CREDITS_INSUFFICIENT(HttpStatus.CONFLICT),
 
+    /** The membership has no remaining credits and cannot complete this operation. */
+    MEMBERSHIP_NO_CREDITS(HttpStatus.CONFLICT),
+
     /** The session overlaps with another confirmed booking for this member. */
     OVERLAPPING_BOOKING(HttpStatus.CONFLICT),
 
@@ -170,6 +173,24 @@ public enum ErrorCode {
     /** The member is not suspended; cannot reactivate an active member. */
     MEMBER_NOT_SUSPENDED(HttpStatus.CONFLICT),
 
+    /** A membership plan with this name already exists (case-insensitive). */
+    PLAN_NAME_ALREADY_EXISTS(HttpStatus.CONFLICT),
+
+    /** The membership plan is already inactive; cannot deactivate again. */
+    PLAN_ALREADY_INACTIVE(HttpStatus.CONFLICT),
+
+    /** The membership plan is inactive; this operation requires an active plan. */
+    PLAN_INACTIVE(HttpStatus.CONFLICT),
+
+    /** A member already has one ACTIVE and one PENDING membership; cannot queue a third. */
+    MEMBERSHIP_ALREADY_QUEUED(HttpStatus.CONFLICT),
+
+    /** The requested startsAt is before the current active membership's expiresAt. */
+    MEMBERSHIP_START_BEFORE_CURRENT_EXPIRY(HttpStatus.CONFLICT),
+
+    /** Membership cancellation is only allowed for PENDING status; ACTIVE, EXPIRED, or CANCELLED memberships cannot be cancelled. */
+    MEMBERSHIP_NOT_CANCELLABLE(HttpStatus.CONFLICT),
+
     // -------------------------------------------------------------------------
     // 422 — Input validation failure (request wrong regardless of server state)
     // -------------------------------------------------------------------------
@@ -188,6 +209,12 @@ public enum ErrorCode {
 
     /** The requested sort field is not supported by this endpoint. */
     INVALID_SORT_FIELD(HttpStatus.UNPROCESSABLE_ENTITY),
+
+    /** A field value has an invalid format (e.g. currency code, decimal scale). */
+    INVALID_FORMAT(HttpStatus.UNPROCESSABLE_ENTITY),
+
+    /** An enum value is not a member of the allowed set. */
+    INVALID_ENUM(HttpStatus.UNPROCESSABLE_ENTITY),
 
     /** The request body contains an unrecognised field. */
     UNKNOWN_FIELD(HttpStatus.UNPROCESSABLE_ENTITY),

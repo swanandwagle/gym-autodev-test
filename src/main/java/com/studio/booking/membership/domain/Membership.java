@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -31,6 +32,9 @@ public class Membership {
     @Column(nullable = false)
     private boolean unlimited;
 
+    @Column(name = "credits_initial")
+    private Integer creditsInitial;
+
     @Column(name = "credits_remaining")
     private Integer creditsRemaining;
 
@@ -52,16 +56,17 @@ public class Membership {
     protected Membership() {}
 
     public Membership(UUID memberId, UUID planId, String status, boolean unlimited,
-                      Integer creditsRemaining, Instant startsAt, Instant expiresAt) {
+                      Integer creditsInitial, Integer creditsRemaining, Instant startsAt, Instant expiresAt) {
         this.memberId = memberId;
         this.planId = planId;
         this.status = status;
         this.unlimited = unlimited;
+        this.creditsInitial = creditsInitial;
         this.creditsRemaining = creditsRemaining;
         this.startsAt = startsAt;
         this.expiresAt = expiresAt;
-        this.createdAt = Instant.now();
-        this.updatedAt = Instant.now();
+        this.createdAt = Instant.now(Clock.systemUTC());
+        this.updatedAt = Instant.now(Clock.systemUTC());
     }
 
     public UUID getId() { return id; }
@@ -69,6 +74,7 @@ public class Membership {
     public UUID getPlanId() { return planId; }
     public String getStatus() { return status; }
     public boolean isUnlimited() { return unlimited; }
+    public Integer getCreditsInitial() { return creditsInitial; }
     public Integer getCreditsRemaining() { return creditsRemaining; }
     public Instant getStartsAt() { return startsAt; }
     public Instant getExpiresAt() { return expiresAt; }
@@ -78,5 +84,13 @@ public class Membership {
 
     public void setCreditsRemaining(Integer creditsRemaining) {
         this.creditsRemaining = creditsRemaining;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
     }
 }

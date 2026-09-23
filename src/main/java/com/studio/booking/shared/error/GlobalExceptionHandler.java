@@ -325,12 +325,16 @@ public class GlobalExceptionHandler {
             case ROOM_SCHEDULE_CONFLICT     -> "Room Schedule Conflict";
             case CLASS_TYPE_NAME_ALREADY_EXISTS -> "Class Type Name Already Exists";
             case CLASS_TYPE_INACTIVE        -> "Class Type Inactive";
+            case PLAN_NAME_ALREADY_EXISTS   -> "Plan Name Already Exists";
+            case PLAN_ALREADY_INACTIVE      -> "Plan Already Inactive";
             case IDEMPOTENCY_KEY_CONFLICT   -> "Idempotency Key Conflict";
             case JOB_ALREADY_RUNNING        -> "Job Already Running";
             case VALIDATION_FAILED          -> "Validation Failed";
             case INVALID_DATE_RANGE         -> "Invalid Date Range";
             case INVALID_PAGINATION         -> "Invalid Pagination";
             case INVALID_SORT_FIELD         -> "Invalid Sort Field";
+            case INVALID_FORMAT             -> "Invalid Format";
+            case INVALID_ENUM               -> "Invalid Enum";
             case UNKNOWN_FIELD              -> "Unknown Field";
             case INTERNAL_ERROR             -> "Internal Server Error";
         };

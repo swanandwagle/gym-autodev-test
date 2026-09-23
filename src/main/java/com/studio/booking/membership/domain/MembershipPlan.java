@@ -35,6 +35,9 @@ public class MembershipPlan {
     @Column(nullable = false, length = 3)
     private String currency;
 
+    @Column(nullable = false, length = 32)
+    private String tier;
+
     @Column(nullable = false)
     private boolean active;
 
@@ -50,12 +53,13 @@ public class MembershipPlan {
     protected MembershipPlan() {}
 
     public MembershipPlan(String name, Integer classCredits, int durationDays,
-                          BigDecimal price, String currency) {
+                          BigDecimal price, String currency, String tier) {
         this.name = name;
         this.classCredits = classCredits;
         this.durationDays = durationDays;
         this.price = price;
         this.currency = currency;
+        this.tier = tier != null ? tier : "BASIC";
         this.active = true;
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
@@ -67,8 +71,24 @@ public class MembershipPlan {
     public int getDurationDays() { return durationDays; }
     public BigDecimal getPrice() { return price; }
     public String getCurrency() { return currency; }
+    public String getTier() { return tier; }
     public boolean isActive() { return active; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public long getVersion() { return version; }
+
+    public void updateName(String newName) {
+        this.name = newName;
+        this.updatedAt = Instant.now();
+    }
+
+    public void updateClassCredits(Integer newClassCredits) {
+        this.classCredits = newClassCredits;
+        this.updatedAt = Instant.now();
+    }
+
+    public void deactivate() {
+        this.active = false;
+        this.updatedAt = Instant.now();
+    }
 }
