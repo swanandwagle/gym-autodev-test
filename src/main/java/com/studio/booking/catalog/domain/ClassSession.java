@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -56,6 +57,11 @@ public class ClassSession {
 
     public ClassSession(UUID classTypeId, UUID instructorId, UUID roomId,
                         Instant startsAt, Instant endsAt, int capacity) {
+        this(classTypeId, instructorId, roomId, startsAt, endsAt, capacity, Clock.systemUTC());
+    }
+
+    public ClassSession(UUID classTypeId, UUID instructorId, UUID roomId,
+                        Instant startsAt, Instant endsAt, int capacity, Clock clock) {
         this.classTypeId = classTypeId;
         this.instructorId = instructorId;
         this.roomId = roomId;
@@ -64,8 +70,9 @@ public class ClassSession {
         this.capacity = capacity;
         this.bookedCount = 0;
         this.status = "SCHEDULED";
-        this.createdAt = Instant.now();
-        this.updatedAt = Instant.now();
+        Instant now = clock.instant();
+        this.createdAt = now;
+        this.updatedAt = now;
     }
 
     public UUID getId() { return id; }

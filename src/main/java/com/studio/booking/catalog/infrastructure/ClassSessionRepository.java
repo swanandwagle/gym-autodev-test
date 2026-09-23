@@ -31,5 +31,31 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, UUID
 
     @Query("SELECT s FROM ClassSession s WHERE s.roomId = :roomId")
     List<ClassSession> findByRoomId(@Param("roomId") UUID roomId);
+
+    @Query("""
+        SELECT s FROM ClassSession s
+        WHERE s.instructorId = :instructorId
+          AND s.startsAt < :endsAt
+          AND s.endsAt > :startsAt
+          AND s.status != 'CANCELLED'
+    """)
+    List<ClassSession> findOverlappingInstructorSessions(
+            @Param("instructorId") UUID instructorId,
+            @Param("startsAt") Instant startsAt,
+            @Param("endsAt") Instant endsAt
+    );
+
+    @Query("""
+        SELECT s FROM ClassSession s
+        WHERE s.roomId = :roomId
+          AND s.startsAt < :endsAt
+          AND s.endsAt > :startsAt
+          AND s.status != 'CANCELLED'
+    """)
+    List<ClassSession> findOverlappingRoomSessions(
+            @Param("roomId") UUID roomId,
+            @Param("startsAt") Instant startsAt,
+            @Param("endsAt") Instant endsAt
+    );
 }
 
