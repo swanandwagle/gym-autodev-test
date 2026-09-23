@@ -10,6 +10,8 @@ CREATE TABLE member (
     phone          varchar(50),
     status         varchar(20)  NOT NULL DEFAULT 'ACTIVE'
                        CHECK (status IN ('ACTIVE', 'SUSPENDED', 'DEACTIVATED')),
+    suspension_reason  varchar(255),
+    joined_at      timestamptz  NOT NULL DEFAULT now(),
     created_at     timestamptz  NOT NULL DEFAULT now(),
     updated_at     timestamptz  NOT NULL DEFAULT now(),
     version        bigint       NOT NULL DEFAULT 0
