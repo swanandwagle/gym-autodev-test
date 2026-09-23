@@ -170,6 +170,9 @@ public enum ErrorCode {
     /** The member is not suspended; cannot reactivate an active member. */
     MEMBER_NOT_SUSPENDED(HttpStatus.CONFLICT),
 
+    /** A membership plan with this name already exists (case-insensitive). */
+    PLAN_NAME_ALREADY_EXISTS(HttpStatus.CONFLICT),
+
     // -------------------------------------------------------------------------
     // 422 — Input validation failure (request wrong regardless of server state)
     // -------------------------------------------------------------------------
@@ -188,6 +191,12 @@ public enum ErrorCode {
 
     /** The requested sort field is not supported by this endpoint. */
     INVALID_SORT_FIELD(HttpStatus.UNPROCESSABLE_ENTITY),
+
+    /** A field value has an invalid format (e.g. currency code, decimal scale). */
+    INVALID_FORMAT(HttpStatus.UNPROCESSABLE_ENTITY),
+
+    /** An enum value is not a member of the allowed set. */
+    INVALID_ENUM(HttpStatus.UNPROCESSABLE_ENTITY),
 
     /** The request body contains an unrecognised field. */
     UNKNOWN_FIELD(HttpStatus.UNPROCESSABLE_ENTITY),
