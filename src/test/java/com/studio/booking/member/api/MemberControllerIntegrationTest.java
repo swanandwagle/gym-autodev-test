@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.studio.booking.member.infrastructure.MemberRepository;
 import com.studio.booking.shared.error.ErrorCode;
 import com.studio.booking.shared.error.ErrorEnvelope;
+import com.studio.booking.shared.web.PageResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -1389,5 +1390,540 @@ class MemberControllerIntegrationTest {
 
         assertThat(reactivated.status()).isEqualTo("ACTIVE");
         assertThat(reactivated.suspensionReason()).isNull();
+    }
+
+    // =========================================================================
+    // GYM-28: LIST and SEARCH members
+    // =========================================================================
+
+    @Test
+    void test_ac1_list_no_params_returns_first_page_sorted_by_joined_at_desc() throws Exception {
+        RegisterMemberRequest req1 = new RegisterMemberRequest("alice@example.com", "Alice", null);
+        RegisterMemberRequest req2 = new RegisterMemberRequest("bob@example.com", "Bob", null);
+        RegisterMemberRequest req3 = new RegisterMemberRequest("carol@example.com", "Carol", null);
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req1)))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req2)))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req3)))
+            .andExpect(status().isCreated());
+
+        MvcResult result = mockMvc.perform(get("/api/v1/members"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PageResponse pageResponse = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            PageResponse.class
+        );
+
+        assertThat(pageResponse.content()).hasSize(3);
+        assertThat(pageResponse.page().number()).isEqualTo(0);
+        assertThat(pageResponse.page().size()).isEqualTo(20);
+        assertThat(pageResponse.page().totalElements()).isEqualTo(3);
+        assertThat(pageResponse.page().totalPages()).isEqualTo(1);
+    }
+
+    @Test
+    void test_ac2_q_matching_part_of_member_name_returns_member() throws Exception {
+        RegisterMemberRequest req1 = new RegisterMemberRequest("alice@example.com", "Alice Johnson", null);
+        RegisterMemberRequest req2 = new RegisterMemberRequest("bob@example.com", "Bob Smith", null);
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req1)))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req2)))
+            .andExpect(status().isCreated());
+
+        MvcResult result = mockMvc.perform(get("/api/v1/members?q=John"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PageResponse pageResponse = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            PageResponse.class
+        );
+
+        assertThat(pageResponse.content()).hasSize(1);
+    }
+
+    @Test
+    void test_ac3_q_matching_part_of_email_returns_member() throws Exception {
+        RegisterMemberRequest req1 = new RegisterMemberRequest("alice.johnson@example.com", "Alice", null);
+        RegisterMemberRequest req2 = new RegisterMemberRequest("bob.smith@example.com", "Bob", null);
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req1)))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req2)))
+            .andExpect(status().isCreated());
+
+        MvcResult result = mockMvc.perform(get("/api/v1/members?q=alice"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PageResponse pageResponse = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            PageResponse.class
+        );
+
+        assertThat(pageResponse.content()).hasSize(1);
+    }
+
+    @Test
+    void test_ac4_q_matching_is_case_insensitive() throws Exception {
+        RegisterMemberRequest req = new RegisterMemberRequest("alice@example.com", "Alice Johnson", null);
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req)))
+            .andExpect(status().isCreated());
+
+        MvcResult result1 = mockMvc.perform(get("/api/v1/members?q=ALICE"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PageResponse pageResponse1 = objectMapper.readValue(
+            result1.getResponse().getContentAsString(),
+            PageResponse.class
+        );
+        assertThat(pageResponse1.content()).hasSize(1);
+
+        MvcResult result2 = mockMvc.perform(get("/api/v1/members?q=johnson"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PageResponse pageResponse2 = objectMapper.readValue(
+            result2.getResponse().getContentAsString(),
+            PageResponse.class
+        );
+        assertThat(pageResponse2.content()).hasSize(1);
+    }
+
+    @Test
+    void test_ac5_q_matching_nothing_returns_200_empty_content() throws Exception {
+        RegisterMemberRequest req = new RegisterMemberRequest("alice@example.com", "Alice", null);
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req)))
+            .andExpect(status().isCreated());
+
+        MvcResult result = mockMvc.perform(get("/api/v1/members?q=nonexistent"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PageResponse pageResponse = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            PageResponse.class
+        );
+
+        assertThat(pageResponse.content()).isEmpty();
+        assertThat(pageResponse.page().totalElements()).isEqualTo(0);
+    }
+
+    @Test
+    void test_ac6_status_suspended_returns_only_suspended() throws Exception {
+        RegisterMemberRequest req1 = new RegisterMemberRequest("alice@example.com", "Alice", null);
+        RegisterMemberRequest req2 = new RegisterMemberRequest("bob@example.com", "Bob", null);
+
+        MvcResult result1 = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req1)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse alice = objectMapper.readValue(
+            result1.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req2)))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/members/{id}/suspend", alice.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{}"))
+            .andExpect(status().isOk());
+
+        MvcResult result = mockMvc.perform(get("/api/v1/members?status=SUSPENDED"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PageResponse pageResponse = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            PageResponse.class
+        );
+
+        assertThat(pageResponse.content()).hasSize(1);
+    }
+
+    @Test
+    void test_ac6_status_omitted_returns_both_statuses() throws Exception {
+        RegisterMemberRequest req1 = new RegisterMemberRequest("alice@example.com", "Alice", null);
+        RegisterMemberRequest req2 = new RegisterMemberRequest("bob@example.com", "Bob", null);
+
+        MvcResult result1 = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req1)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse alice = objectMapper.readValue(
+            result1.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req2)))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/members/{id}/suspend", alice.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content("{}"))
+            .andExpect(status().isOk());
+
+        MvcResult result = mockMvc.perform(get("/api/v1/members"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PageResponse pageResponse = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            PageResponse.class
+        );
+
+        assertThat(pageResponse.content()).hasSize(2);
+    }
+
+    @Test
+    void test_ac7_sort_field_joinedAt_asc() throws Exception {
+        RegisterMemberRequest req1 = new RegisterMemberRequest("alice@example.com", "Alice", null);
+        RegisterMemberRequest req2 = new RegisterMemberRequest("bob@example.com", "Bob", null);
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req1)))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req2)))
+            .andExpect(status().isCreated());
+
+        MvcResult result = mockMvc.perform(get("/api/v1/members?sort=joinedAt,asc"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PageResponse pageResponse = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            PageResponse.class
+        );
+
+        assertThat(pageResponse.content()).hasSize(2);
+    }
+
+    @Test
+    void test_ac7_sort_field_email_desc() throws Exception {
+        RegisterMemberRequest req1 = new RegisterMemberRequest("alice@example.com", "Alice", null);
+        RegisterMemberRequest req2 = new RegisterMemberRequest("bob@example.com", "Bob", null);
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req1)))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req2)))
+            .andExpect(status().isCreated());
+
+        MvcResult result = mockMvc.perform(get("/api/v1/members?sort=email,desc"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PageResponse pageResponse = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            PageResponse.class
+        );
+
+        assertThat(pageResponse.content()).hasSize(2);
+    }
+
+    @Test
+    void test_ac8_invalid_sort_field_returns_422_invalid_enum() throws Exception {
+        RegisterMemberRequest req = new RegisterMemberRequest("alice@example.com", "Alice", null);
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req)))
+            .andExpect(status().isCreated());
+
+        MvcResult result = mockMvc.perform(get("/api/v1/members?sort=invalidField,asc"))
+            .andExpect(status().isUnprocessableEntity())
+            .andReturn();
+
+        ErrorEnvelope error = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            ErrorEnvelope.class
+        );
+
+        assertThat(error.errors()).isNotEmpty();
+        assertThat(error.errors()).anySatisfy(fieldError ->
+            assertThat(fieldError.code()).isEqualTo("INVALID_ENUM")
+        );
+        assertThat(error.errors().get(0).message()).contains("joinedAt", "email", "fullName");
+    }
+
+    @Test
+    void test_ac9_size_zero_returns_422_out_of_range() throws Exception {
+        RegisterMemberRequest req = new RegisterMemberRequest("alice@example.com", "Alice", null);
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req)))
+            .andExpect(status().isCreated());
+
+        MvcResult result = mockMvc.perform(get("/api/v1/members?size=0"))
+            .andExpect(status().isUnprocessableEntity())
+            .andReturn();
+
+        ErrorEnvelope error = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            ErrorEnvelope.class
+        );
+
+        assertThat(error.errors())
+            .anyMatch(e -> "size".equals(e.field()) && "OUT_OF_RANGE".equals(e.code()));
+    }
+
+    @Test
+    void test_ac9_size_101_returns_422_out_of_range() throws Exception {
+        RegisterMemberRequest req = new RegisterMemberRequest("alice@example.com", "Alice", null);
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req)))
+            .andExpect(status().isCreated());
+
+        MvcResult result = mockMvc.perform(get("/api/v1/members?size=101"))
+            .andExpect(status().isUnprocessableEntity())
+            .andReturn();
+
+        ErrorEnvelope error = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            ErrorEnvelope.class
+        );
+
+        assertThat(error.errors())
+            .anyMatch(e -> "size".equals(e.field()) && "OUT_OF_RANGE".equals(e.code()));
+    }
+
+    @Test
+    void test_ac10_q_of_101_characters_returns_422_too_long() throws Exception {
+        RegisterMemberRequest req = new RegisterMemberRequest("alice@example.com", "Alice", null);
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req)))
+            .andExpect(status().isCreated());
+
+        String longQuery = "a".repeat(101);
+
+        MvcResult result = mockMvc.perform(get("/api/v1/members?q=" + longQuery))
+            .andExpect(status().isUnprocessableEntity())
+            .andReturn();
+
+        ErrorEnvelope error = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            ErrorEnvelope.class
+        );
+
+        assertThat(error.code()).isEqualTo(ErrorCode.TOO_LONG);
+        assertThat(error.errors()).anySatisfy(fieldError ->
+            assertThat(fieldError.field()).isEqualTo("q")
+        );
+    }
+
+    @Test
+    void test_ac10_q_of_100_characters_returns_200() throws Exception {
+        RegisterMemberRequest req = new RegisterMemberRequest("alice@example.com", "Alice", null);
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req)))
+            .andExpect(status().isCreated());
+
+        String query = "a".repeat(100);
+
+        MvcResult result = mockMvc.perform(get("/api/v1/members?q=" + query))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PageResponse pageResponse = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            PageResponse.class
+        );
+
+        assertThat(pageResponse.page().totalElements()).isEqualTo(0);
+    }
+
+    @Test
+    void test_ac11_pagination_boundaries_zero_results() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/v1/members"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PageResponse pageResponse = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            PageResponse.class
+        );
+
+        assertThat(pageResponse.page().totalElements()).isEqualTo(0);
+        assertThat(pageResponse.page().totalPages()).isEqualTo(0);
+    }
+
+    @Test
+    void test_ac11_pagination_boundaries_exactly_one_full_page() throws Exception {
+        for (int i = 0; i < 20; i++) {
+            RegisterMemberRequest req = new RegisterMemberRequest(
+                "user" + i + "@example.com",
+                "User " + i,
+                null
+            );
+            mockMvc.perform(post("/api/v1/members")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isCreated());
+        }
+
+        MvcResult result = mockMvc.perform(get("/api/v1/members?size=20"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PageResponse pageResponse = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            PageResponse.class
+        );
+
+        assertThat(pageResponse.page().totalElements()).isEqualTo(20);
+        assertThat(pageResponse.page().totalPages()).isEqualTo(1);
+    }
+
+    @Test
+    void test_ac11_pagination_boundaries_one_result_spilling_to_second_page() throws Exception {
+        for (int i = 0; i < 21; i++) {
+            RegisterMemberRequest req = new RegisterMemberRequest(
+                "user" + i + "@example.com",
+                "User " + i,
+                null
+            );
+            mockMvc.perform(post("/api/v1/members")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isCreated());
+        }
+
+        MvcResult result = mockMvc.perform(get("/api/v1/members?size=20"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PageResponse pageResponse = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            PageResponse.class
+        );
+
+        assertThat(pageResponse.page().totalElements()).isEqualTo(21);
+        assertThat(pageResponse.page().totalPages()).isEqualTo(2);
+        assertThat(pageResponse.content()).hasSize(20);
+    }
+
+    @Test
+    void test_ac12_blank_q_behaves_as_absent() throws Exception {
+        RegisterMemberRequest req1 = new RegisterMemberRequest("alice@example.com", "Alice", null);
+        RegisterMemberRequest req2 = new RegisterMemberRequest("bob@example.com", "Bob", null);
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req1)))
+            .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(req2)))
+            .andExpect(status().isCreated());
+
+        MvcResult result1 = mockMvc.perform(get("/api/v1/members?q="))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PageResponse pageResponse1 = objectMapper.readValue(
+            result1.getResponse().getContentAsString(),
+            PageResponse.class
+        );
+
+        MvcResult result2 = mockMvc.perform(get("/api/v1/members"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        PageResponse pageResponse2 = objectMapper.readValue(
+            result2.getResponse().getContentAsString(),
+            PageResponse.class
+        );
+
+        assertThat(pageResponse1.content()).hasSize(pageResponse2.content().size());
+        assertThat(pageResponse1.page().totalElements()).isEqualTo(pageResponse2.page().totalElements());
+    }
+
+    @Test
+    void test_ac13_query_performance_with_realistic_dataset() throws Exception {
+        // Seed realistic dataset: 1000 members with varying name/email patterns
+        for (int i = 0; i < 1000; i++) {
+            RegisterMemberRequest req = new RegisterMemberRequest(
+                "user" + i + "@example.com",
+                "Member " + i,
+                null
+            );
+            mockMvc.perform(post("/api/v1/members")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isCreated());
+        }
+
+        long startTime = System.currentTimeMillis();
+
+        MvcResult result = mockMvc.perform(get("/api/v1/members?q=user5&size=50"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
+
+        PageResponse pageResponse = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            PageResponse.class
+        );
+
+        assertThat(duration).as("Query should complete in reasonable time").isLessThan(5000);
+        assertThat(pageResponse.content()).hasSizeGreaterThan(0);
     }
 }

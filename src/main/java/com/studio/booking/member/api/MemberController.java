@@ -7,6 +7,11 @@ import com.studio.booking.shared.error.ErrorCode;
 import com.studio.booking.shared.error.ErrorEnvelope;
 import com.studio.booking.shared.error.FieldError;
 import com.studio.booking.shared.validation.ValidUuid;
+import com.studio.booking.shared.web.AllowedSortFields;
+import com.studio.booking.shared.web.PageParamsValidator;
+import com.studio.booking.shared.web.PageResponse;
+import com.studio.booking.shared.web.SortValidator;
+import com.studio.booking.shared.web.SortablePageParams;
 import jakarta.servlet.http.HttpServletRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -15,6 +20,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,9 +37,91 @@ import java.util.UUID;
 public class MemberController {
 
     private final MemberService memberService;
+    private final PageParamsValidator pageParamsValidator;
+    private final SortValidator sortValidator;
 
-    public MemberController(MemberService memberService) {
+    public MemberController(
+        MemberService memberService,
+        PageParamsValidator pageParamsValidator,
+        SortValidator sortValidator
+    ) {
         this.memberService = memberService;
+        this.pageParamsValidator = pageParamsValidator;
+        this.sortValidator = sortValidator;
+    }
+
+    @GetMapping
+    @Operation(
+        summary = "List and search members",
+        description = "Lists members with optional full-text search on name or email, status filtering, and pagination. " +
+                      "The 'q' parameter matches substring in both directions (case-insensitive); omit or leave blank to skip filtering. " +
+                      "Default sort is by joinedAt descending; valid sort fields are: joinedAt, email, fullName."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Paginated member list returned",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = PageResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "422",
+            description = "Validation error (invalid pagination, sort field, or q length)",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorEnvelope.class)
+            )
+        )
+    })
+    public ResponseEntity<PageResponse<MemberResponse>> listMembers(
+        @RequestParam(required = false) String q,
+        @RequestParam(required = false) String status,
+        @AllowedSortFields({"joinedAt", "email", "fullName"})
+        SortablePageParams params
+    ) {
+        pageParamsValidator.validate(params);
+        sortValidator.validate(params, new String[]{"joinedAt", "email", "fullName"});
+
+        if (q != null && q.length() > 100) {
+            throw new ApiException(
+                ErrorCode.TOO_LONG,
+                "Search query exceeds maximum length of 100 characters",
+                List.of(
+                    FieldError.of(
+                        "q",
+                        "TOO_LONG",
+                        "Query must not exceed 100 characters"
+                    )
+                )
+            );
+        }
+
+        String normalizedQuery = (q == null || q.isBlank()) ? "" : q;
+        String normalizedStatus = (status == null || status.isBlank()) ? null : status;
+
+        Sort sort;
+        String sortField = params.sortField();
+        String sortDirection = params.sortDirection();
+        if (sortField != null) {
+            sort = Sort.by(new Sort.Order(
+                "desc".equalsIgnoreCase(sortDirection) ? Sort.Direction.DESC : Sort.Direction.ASC,
+                sortField
+            ));
+        } else {
+            sort = Sort.by(new Sort.Order(Sort.Direction.DESC, "joinedAt"));
+        }
+
+        var pageable = PageRequest.of(params.getPage(), params.getSize(), sort);
+        Page<Member> memberPage = memberService.searchMembers(normalizedQuery, normalizedStatus, pageable);
+
+        List<MemberResponse> content = memberPage.getContent()
+            .stream()
+            .map(MemberResponse::from)
+            .toList();
+
+        return ResponseEntity.ok(PageResponse.of(content, params.getPage(), params.getSize(), memberPage.getTotalElements()));
     }
 
     @PostMapping

@@ -6,6 +6,8 @@ import com.studio.booking.member.domain.Member;
 import com.studio.booking.member.infrastructure.MemberRepository;
 import com.studio.booking.shared.error.ApiException;
 import com.studio.booking.shared.error.ErrorCode;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -125,5 +127,14 @@ public class MemberService {
 
         member.reactivateStatus();
         return memberRepository.save(member);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Member> searchMembers(String query, String status, Pageable pageable) {
+        if (status != null && !status.isBlank()) {
+            return memberRepository.searchByNameOrEmailAndStatus(query, status, pageable);
+        } else {
+            return memberRepository.searchByNameOrEmail(query, pageable);
+        }
     }
 }
