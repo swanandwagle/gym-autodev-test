@@ -137,6 +137,9 @@ public enum ErrorCode {
     /** The scheduled job is already running; concurrent execution is not allowed. */
     JOB_ALREADY_RUNNING(HttpStatus.CONFLICT),
 
+    /** A member with this email address already exists (case-insensitive). */
+    MEMBER_EMAIL_ALREADY_EXISTS(HttpStatus.CONFLICT),
+
     // -------------------------------------------------------------------------
     // 422 — Input validation failure (request wrong regardless of server state)
     // -------------------------------------------------------------------------

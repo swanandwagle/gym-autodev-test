@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -30,6 +31,12 @@ public class Member {
     @Column(nullable = false)
     private String status;
 
+    @Column(name = "suspension_reason")
+    private String suspensionReason;
+
+    @Column(name = "joined_at", nullable = false)
+    private Instant joinedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -41,13 +48,15 @@ public class Member {
 
     protected Member() {}
 
-    public Member(String email, String fullName, String phone, String status) {
+    public Member(String email, String fullName, String phone, String status, Clock clock) {
         this.email = email;
         this.fullName = fullName;
         this.phone = phone;
         this.status = status;
-        this.createdAt = Instant.now();
-        this.updatedAt = Instant.now();
+        this.suspensionReason = null;
+        this.joinedAt = Instant.now(clock);
+        this.createdAt = Instant.now(clock);
+        this.updatedAt = Instant.now(clock);
     }
 
     public UUID getId() { return id; }
@@ -55,6 +64,8 @@ public class Member {
     public String getFullName() { return fullName; }
     public String getPhone() { return phone; }
     public String getStatus() { return status; }
+    public String getSuspensionReason() { return suspensionReason; }
+    public Instant getJoinedAt() { return joinedAt; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public long getVersion() { return version; }
