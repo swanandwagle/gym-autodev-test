@@ -155,6 +155,15 @@ public enum ErrorCode {
     /** The room has one or more future scheduled sessions and cannot be deactivated. */
     ROOM_HAS_FUTURE_SESSIONS(HttpStatus.CONFLICT),
 
+    /** A new session would conflict with the instructor's existing session(s). */
+    SESSION_INSTRUCTOR_CONFLICT(HttpStatus.CONFLICT),
+
+    /** A new session would conflict with the room's existing session(s). */
+    SESSION_ROOM_CONFLICT(HttpStatus.CONFLICT),
+
+    /** The proposed session capacity exceeds the room's maximum capacity. */
+    SESSION_CAPACITY_EXCEEDS_ROOM(HttpStatus.CONFLICT),
+
     /**
      * An idempotency key was reused with different request parameters.
      * (Same key + same member = 200 replay; different params = 409.)
@@ -218,6 +227,9 @@ public enum ErrorCode {
 
     /** The request body contains an unrecognised field. */
     UNKNOWN_FIELD(HttpStatus.UNPROCESSABLE_ENTITY),
+
+    /** The requested date/time is in the past; a future date/time is required. */
+    FUTURE_REQUIRED(HttpStatus.UNPROCESSABLE_ENTITY),
 
     // -------------------------------------------------------------------------
     // 500 — Unhandled / internal
