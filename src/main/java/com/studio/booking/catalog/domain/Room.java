@@ -54,4 +54,12 @@ public class Room {
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public long getVersion() { return version; }
+
+    public void setCapacity(int newCapacity) {
+        this.capacity = newCapacity;
+    }
+
+    public void deactivate() {
+        this.active = false;
+    }
 }
