@@ -25,5 +25,11 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, UUID
             @Param("to") Instant to,
             @Param("statuses") List<String> statuses
     );
+
+    @Query("SELECT s FROM ClassSession s WHERE s.instructorId = :instructorId")
+    List<ClassSession> findByInstructorId(@Param("instructorId") UUID instructorId);
+
+    @Query("SELECT s FROM ClassSession s WHERE s.roomId = :roomId")
+    List<ClassSession> findByRoomId(@Param("roomId") UUID roomId);
 }
 

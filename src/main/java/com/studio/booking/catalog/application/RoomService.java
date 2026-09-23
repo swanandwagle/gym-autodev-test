@@ -3,7 +3,6 @@ package com.studio.booking.catalog.application;
 import com.studio.booking.catalog.api.request.CreateRoomRequest;
 import com.studio.booking.catalog.api.request.PatchRoomRequest;
 import com.studio.booking.catalog.api.response.RoomResponse;
-import com.studio.booking.catalog.domain.ClassSession;
 import com.studio.booking.catalog.domain.Room;
 import com.studio.booking.catalog.infrastructure.RoomRepository;
 import com.studio.booking.shared.error.ApiException;
@@ -15,9 +14,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Clock;
-import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -25,12 +21,10 @@ public class RoomService {
 
     private final RoomRepository repository;
     private final RoomDeactivationGuard deactivationGuard;
-    private final Clock clock;
 
-    public RoomService(RoomRepository repository, RoomDeactivationGuard deactivationGuard, Clock clock) {
+    public RoomService(RoomRepository repository, RoomDeactivationGuard deactivationGuard) {
         this.repository = repository;
         this.deactivationGuard = deactivationGuard;
-        this.clock = clock;
     }
 
     @Transactional
@@ -101,20 +95,12 @@ public class RoomService {
             int currentCapacity = room.getCapacity();
 
             if (newCapacity < currentCapacity) {
-                Instant now = clock.instant();
-                List<ClassSession> futureSessions = repository.findFutureScheduledSessions(id, now);
+                FutureCommitmentResult result = deactivationGuard.checkCapacityReduction(id, newCapacity);
 
-                if (!futureSessions.isEmpty()) {
-                    ClassSession overCapacity = futureSessions.stream()
-                            .filter(session -> session.getCapacity() > newCapacity)
-                            .findFirst()
-                            .orElse(null);
-
-                    if (overCapacity != null) {
-                        throw new ApiException(ErrorCode.ROOM_HAS_FUTURE_SESSIONS,
-                                String.format("Cannot reduce capacity to %d; session %s has capacity %d and starts at %s",
-                                        newCapacity, overCapacity.getId(), overCapacity.getCapacity(), overCapacity.getStartsAt()));
-                    }
+                if (result.count() > 0) {
+                    throw new ApiException(ErrorCode.ROOM_HAS_FUTURE_SESSIONS,
+                            String.format("Cannot reduce capacity to %d; session %s has capacity %d and starts at %s",
+                                    newCapacity, result.sessionIds().get(0), result.firstSessionCapacity(), result.earliestStart()));
                 }
             }
 
