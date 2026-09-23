@@ -17,6 +17,13 @@ public interface WaitlistEntryRepository extends JpaRepository<WaitlistEntry, UU
         GROUP BY w.sessionId
     """)
     List<WaitlistCountDto> countWaitingBySessionIds(@Param("sessionIds") List<UUID> sessionIds);
+
+    @Query("""
+        SELECT w FROM WaitlistEntry w
+        WHERE w.sessionId = :sessionId AND w.status = 'WAITING'
+        ORDER BY w.sequenceNo ASC
+    """)
+    List<WaitlistEntry> findWaitingBySessionIdOrderBySequence(@Param("sessionId") UUID sessionId);
 }
 
 

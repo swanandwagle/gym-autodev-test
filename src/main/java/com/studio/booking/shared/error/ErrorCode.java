@@ -200,6 +200,15 @@ public enum ErrorCode {
     /** Membership cancellation is only allowed for PENDING status; ACTIVE, EXPIRED, or CANCELLED memberships cannot be cancelled. */
     MEMBERSHIP_NOT_CANCELLABLE(HttpStatus.CONFLICT),
 
+    /** The session is not editable; only SCHEDULED sessions can be patched. */
+    SESSION_NOT_EDITABLE(HttpStatus.CONFLICT),
+
+    /** The session has already started and cannot be edited. */
+    SESSION_ALREADY_STARTED(HttpStatus.CONFLICT),
+
+    /** The proposed session capacity is below the current booked count. */
+    SESSION_CAPACITY_BELOW_BOOKED(HttpStatus.CONFLICT),
+
     // -------------------------------------------------------------------------
     // 422 — Input validation failure (request wrong regardless of server state)
     // -------------------------------------------------------------------------
