@@ -100,4 +100,10 @@ public class ClassSession {
 
     public void setStatus(String status) { this.status = status; }
     public void setBookedCount(int bookedCount) { this.bookedCount = bookedCount; }
+
+    public void setStartsAt(Instant startsAt) { this.startsAt = startsAt; }
+    public void setEndsAt(Instant endsAt) { this.endsAt = endsAt; }
+    public void setCapacity(int capacity) { this.capacity = capacity; }
+    public void setInstructorId(UUID instructorId) { this.instructorId = instructorId; }
+    public void setRoomId(UUID roomId) { this.roomId = roomId; }
 }

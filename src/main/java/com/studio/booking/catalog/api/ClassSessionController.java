@@ -2,8 +2,10 @@ package com.studio.booking.catalog.api;
 
 import com.studio.booking.catalog.api.request.CreateClassSessionRequest;
 import com.studio.booking.catalog.api.request.CreateRecurringSessionsRequest;
+import com.studio.booking.catalog.api.request.PatchClassSessionRequest;
 import com.studio.booking.catalog.api.response.ClassSessionScheduleResponse;
 import com.studio.booking.catalog.api.response.CreateRecurringSessionsResponse;
+import com.studio.booking.catalog.api.response.PatchClassSessionResponse;
 import com.studio.booking.catalog.application.ClassSessionService;
 import com.studio.booking.catalog.application.RecurringSessionGenerator;
 import com.studio.booking.catalog.infrastructure.ClassSessionRepository;
@@ -114,5 +116,33 @@ public class ClassSessionController {
                 ))
                 .toList();
         return ResponseEntity.ok(responses);
+    }
+
+    @PatchMapping("/{id}")
+    @Operation(
+        summary = "Edit a scheduled class session",
+        description = """
+            Patch an existing SCHEDULED session to change its time, duration, instructor, room, or capacity.
+
+            Only SCHEDULED sessions can be edited. Sessions that have already started, or are COMPLETED/CANCELLED cannot be modified.
+
+            Capacity changes are validated: new capacity cannot drop below the current booked count,
+            and cannot exceed the room's maximum capacity.
+
+            When capacity is increased, waiting list members are promoted automatically (atomically within the transaction).
+
+            When time or resources (instructor/room) change, SESSION_RESCHEDULED notifications are written for all members with active bookings.
+
+            classTypeId is immutable and will be rejected if supplied.
+            """
+    )
+    @ApiResponse(responseCode = "200", description = "Session updated successfully")
+    @ApiResponse(responseCode = "409", description = "Conflict or state violation (e.g. capacity, time, status, concurrency)")
+    @ApiResponse(responseCode = "422", description = "Input validation failed or unknown field supplied")
+    public ResponseEntity<PatchClassSessionResponse> patch(
+            @PathVariable @ValidUuid String id,
+            @Valid @RequestBody PatchClassSessionRequest request) {
+        PatchClassSessionResponse response = service.patch(UUID.fromString(id), request);
+        return ResponseEntity.ok(response);
     }
 }
