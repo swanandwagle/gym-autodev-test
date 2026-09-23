@@ -76,4 +76,19 @@ public class MembershipPlan {
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public long getVersion() { return version; }
+
+    public void updateName(String newName) {
+        this.name = newName;
+        this.updatedAt = Instant.now();
+    }
+
+    public void updateClassCredits(Integer newClassCredits) {
+        this.classCredits = newClassCredits;
+        this.updatedAt = Instant.now();
+    }
+
+    public void deactivate() {
+        this.active = false;
+        this.updatedAt = Instant.now();
+    }
 }

@@ -326,6 +326,7 @@ public class GlobalExceptionHandler {
             case CLASS_TYPE_NAME_ALREADY_EXISTS -> "Class Type Name Already Exists";
             case CLASS_TYPE_INACTIVE        -> "Class Type Inactive";
             case PLAN_NAME_ALREADY_EXISTS   -> "Plan Name Already Exists";
+            case PLAN_ALREADY_INACTIVE      -> "Plan Already Inactive";
             case IDEMPOTENCY_KEY_CONFLICT   -> "Idempotency Key Conflict";
             case JOB_ALREADY_RUNNING        -> "Job Already Running";
             case VALIDATION_FAILED          -> "Validation Failed";

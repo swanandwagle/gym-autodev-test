@@ -1,6 +1,7 @@
 package com.studio.booking.membership.application;
 
 import com.studio.booking.membership.api.CreateMembershipPlanRequest;
+import com.studio.booking.membership.api.UpdateMembershipPlanRequest;
 import com.studio.booking.membership.domain.MembershipPlan;
 import com.studio.booking.membership.infrastructure.MembershipPlanRepository;
 import com.studio.booking.shared.error.ApiException;
@@ -97,5 +98,49 @@ public class MembershipPlanService {
                 ? planRepository.findAllIncludingInactive(pageable)
                 : planRepository.findAllActive(pageable);
         }
+    }
+
+    @Transactional
+    public MembershipPlan updatePlan(UUID id, UpdateMembershipPlanRequest request) {
+        MembershipPlan plan = getById(id);
+
+        // Update name if provided
+        if (request.hasName()) {
+            String newName = request.name().trim();
+            // Check for duplicate name only if it's different from current name (case-insensitive)
+            if (!newName.equalsIgnoreCase(plan.getName())) {
+                if (planRepository.findByNameCaseInsensitive(newName).isPresent()) {
+                    throw new ApiException(
+                        ErrorCode.PLAN_NAME_ALREADY_EXISTS,
+                        "A membership plan with this name already exists",
+                        null
+                    );
+                }
+            }
+            plan.updateName(newName);
+        }
+
+        // Update classCredits (tri-state: omit = unchanged, explicit value = set, null = unlimited)
+        if (request.hasClassCredits()) {
+            plan.updateClassCredits(request.classCredits());
+        }
+
+        return planRepository.save(plan);
+    }
+
+    @Transactional
+    public MembershipPlan deactivatePlan(UUID id) {
+        MembershipPlan plan = getById(id);
+
+        if (!plan.isActive()) {
+            throw new ApiException(
+                ErrorCode.PLAN_ALREADY_INACTIVE,
+                "This membership plan is already inactive",
+                null
+            );
+        }
+
+        plan.deactivate();
+        return planRepository.save(plan);
     }
 }
