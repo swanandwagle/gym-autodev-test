@@ -18,8 +18,16 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
@@ -362,5 +370,623 @@ class MemberControllerIntegrationTest {
         assertThat(error.errors()).anySatisfy(fieldError ->
             assertThat(fieldError.field()).isEqualTo("fullName")
         );
+    }
+
+    // =========================================================================
+    // GYM-26: GET and PATCH endpoints
+    // =========================================================================
+
+    @Test
+    void test_ac1_get_existing_member_returns_200_with_full_representation() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "alice@example.com",
+            "Alice Smith",
+            "+1234567890"
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        MvcResult getResult = mockMvc.perform(get("/api/v1/members/{id}", registered.id())
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        MemberResponse retrieved = objectMapper.readValue(
+            getResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        assertThat(retrieved.id()).isEqualTo(registered.id());
+        assertThat(retrieved.email()).isEqualTo("alice@example.com");
+        assertThat(retrieved.fullName()).isEqualTo("Alice Smith");
+        assertThat(retrieved.phone()).isEqualTo("+1234567890");
+        assertThat(retrieved.status()).isEqualTo("ACTIVE");
+        assertThat(retrieved.suspensionReason()).isNull();
+        assertThat(retrieved.version()).isEqualTo(0);
+    }
+
+    @Test
+    void test_ac2_get_random_uuid_returns_404_member_not_found() throws Exception {
+        String randomUuid = "00000000-0000-0000-0000-000000000000";
+
+        MvcResult result = mockMvc.perform(get("/api/v1/members/{id}", randomUuid)
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isNotFound())
+            .andReturn();
+
+        ErrorEnvelope error = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            ErrorEnvelope.class
+        );
+
+        assertThat(error.code()).isEqualTo(ErrorCode.MEMBER_NOT_FOUND);
+        assertThat(error.status()).isEqualTo(404);
+    }
+
+    @Test
+    void test_ac3_get_malformed_uuid_returns_422_invalid_format() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/v1/members/{id}", "not-a-uuid")
+            .contentType(MediaType.APPLICATION_JSON))
+            .andExpect(status().isUnprocessableEntity())
+            .andReturn();
+
+        ErrorEnvelope error = objectMapper.readValue(
+            result.getResponse().getContentAsString(),
+            ErrorEnvelope.class
+        );
+
+        assertThat(error.code()).isEqualTo(ErrorCode.VALIDATION_FAILED);
+        assertThat(error.status()).isEqualTo(422);
+        assertThat(error.errors()).isNotEmpty();
+        assertThat(error.errors()).anySatisfy(fieldError ->
+            assertThat(fieldError.code()).isEqualTo("INVALID_FORMAT")
+        );
+    }
+
+    @Test
+    void test_ac4_patch_only_phone_updates_phone_unchanged_others() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "bob@example.com",
+            "Bob Jones",
+            "+1111111111"
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        String updateJson = """
+            {
+                "phone": "+9999999999",
+                "version": 0
+            }
+            """;
+
+        MvcResult patchResult = mockMvc.perform(patch("/api/v1/members/{id}", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(updateJson))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        MemberResponse updated = objectMapper.readValue(
+            patchResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        assertThat(updated.phone()).isEqualTo("+9999999999");
+        assertThat(updated.email()).isEqualTo("bob@example.com");
+        assertThat(updated.fullName()).isEqualTo("Bob Jones");
+    }
+
+    @Test
+    void test_ac4_patch_only_email_updates_email() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "carol@example.com",
+            "Carol Lee",
+            "+2222222222"
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        String updateJson = """
+            {
+                "email": "carol.new@example.com",
+                "version": 0
+            }
+            """;
+
+        MvcResult patchResult = mockMvc.perform(patch("/api/v1/members/{id}", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(updateJson))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        MemberResponse updated = objectMapper.readValue(
+            patchResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        assertThat(updated.email()).isEqualTo("carol.new@example.com");
+        assertThat(updated.fullName()).isEqualTo("Carol Lee");
+        assertThat(updated.phone()).isEqualTo("+2222222222");
+    }
+
+    @Test
+    void test_ac4_patch_only_name_updates_name() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "diana@example.com",
+            "Diana Prince",
+            "+3333333333"
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        String updateJson = """
+            {
+                "fullName": "Diana Wonder",
+                "version": 0
+            }
+            """;
+
+        MvcResult patchResult = mockMvc.perform(patch("/api/v1/members/{id}", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(updateJson))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        MemberResponse updated = objectMapper.readValue(
+            patchResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        assertThat(updated.fullName()).isEqualTo("Diana Wonder");
+        assertThat(updated.email()).isEqualTo("diana@example.com");
+        assertThat(updated.phone()).isEqualTo("+3333333333");
+    }
+
+    @Test
+    void test_ac5_patch_response_version_incremented_by_one() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "eve@example.com",
+            "Eve Wilson",
+            "+4444444444"
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        String updateJson = """
+            {
+                "phone": "+5555555555",
+                "version": 0
+            }
+            """;
+
+        MvcResult patchResult = mockMvc.perform(patch("/api/v1/members/{id}", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(updateJson))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        MemberResponse updated = objectMapper.readValue(
+            patchResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        assertThat(updated.version()).isEqualTo(1);
+    }
+
+    @Test
+    void test_ac6_patch_stale_version_returns_409_concurrent_modification() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "frank@example.com",
+            "Frank Turner",
+            "+6666666666"
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        String updateJson1 = """
+            {
+                "phone": "+7777777777",
+                "version": 0
+            }
+            """;
+
+        mockMvc.perform(patch("/api/v1/members/{id}", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(updateJson1))
+            .andExpect(status().isOk());
+
+        String updateJson2 = """
+            {
+                "phone": "+8888888888",
+                "version": 0
+            }
+            """;
+
+        MvcResult staleResult = mockMvc.perform(patch("/api/v1/members/{id}", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(updateJson2))
+            .andExpect(status().isConflict())
+            .andReturn();
+
+        ErrorEnvelope error = objectMapper.readValue(
+            staleResult.getResponse().getContentAsString(),
+            ErrorEnvelope.class
+        );
+
+        assertThat(error.code()).isEqualTo(ErrorCode.CONCURRENT_MODIFICATION);
+        assertThat(error.status()).isEqualTo(409);
+    }
+
+    @Test
+    void test_ac7_concurrent_patch_same_version_one_succeeds_one_409() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "grace@example.com",
+            "Grace Hopper",
+            "+7111111111"
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        String updateJson = """
+            {
+                "phone": "+9911111111",
+                "version": 0
+            }
+            """;
+
+        int numThreads = 2;
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        CountDownLatch startLatch = new CountDownLatch(1);
+        CountDownLatch endLatch = new CountDownLatch(numThreads);
+        AtomicInteger successCount = new AtomicInteger(0);
+        AtomicInteger conflictCount = new AtomicInteger(0);
+
+        for (int i = 0; i < numThreads; i++) {
+            executor.submit(() -> {
+                try {
+                    startLatch.await();
+                    MvcResult result = mockMvc.perform(patch("/api/v1/members/{id}", registered.id())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(updateJson))
+                        .andReturn();
+                    int status = result.getResponse().getStatus();
+                    if (status == 200) {
+                        successCount.incrementAndGet();
+                    } else if (status == 409) {
+                        conflictCount.incrementAndGet();
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    endLatch.countDown();
+                }
+            });
+        }
+
+        startLatch.countDown();
+        endLatch.await();
+        executor.shutdown();
+
+        assertThat(successCount.get()).isEqualTo(1);
+        assertThat(conflictCount.get()).isEqualTo(1);
+    }
+
+    @Test
+    void test_ac8_patch_email_to_another_member_email_returns_409() throws Exception {
+        RegisterMemberRequest request1 = new RegisterMemberRequest(
+            "henry@example.com",
+            "Henry Ford",
+            null
+        );
+        MvcResult result1 = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request1)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse member1 = objectMapper.readValue(
+            result1.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        RegisterMemberRequest request2 = new RegisterMemberRequest(
+            "iris@example.com",
+            "Iris West",
+            null
+        );
+        MvcResult result2 = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(request2)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse member2 = objectMapper.readValue(
+            result2.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        String updateJson = """
+            {
+                "email": "iris@example.com",
+                "version": 0
+            }
+            """;
+
+        MvcResult updateResult = mockMvc.perform(patch("/api/v1/members/{id}", member1.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(updateJson))
+            .andExpect(status().isConflict())
+            .andReturn();
+
+        ErrorEnvelope error = objectMapper.readValue(
+            updateResult.getResponse().getContentAsString(),
+            ErrorEnvelope.class
+        );
+
+        assertThat(error.code()).isEqualTo(ErrorCode.MEMBER_EMAIL_ALREADY_EXISTS);
+        assertThat(error.status()).isEqualTo(409);
+    }
+
+    @Test
+    void test_ac9_patch_email_to_own_current_email_succeeds() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "jack@example.com",
+            "Jack Ryan",
+            "+8111111111"
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        String updateJson = """
+            {
+                "email": "jack@example.com",
+                "version": 0
+            }
+            """;
+
+        MvcResult patchResult = mockMvc.perform(patch("/api/v1/members/{id}", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(updateJson))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        MemberResponse updated = objectMapper.readValue(
+            patchResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        assertThat(updated.email()).isEqualTo("jack@example.com");
+        assertThat(updated.version()).isEqualTo(1);
+    }
+
+    @Test
+    void test_ac10_patch_only_version_returns_422_body_error() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "karl@example.com",
+            "Karl Marx",
+            "+9111111111"
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        String updateJson = """
+            {
+                "version": 0
+            }
+            """;
+
+        MvcResult patchResult = mockMvc.perform(patch("/api/v1/members/{id}", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(updateJson))
+            .andExpect(status().isUnprocessableEntity())
+            .andReturn();
+
+        ErrorEnvelope error = objectMapper.readValue(
+            patchResult.getResponse().getContentAsString(),
+            ErrorEnvelope.class
+        );
+
+        assertThat(error.code()).isEqualTo(ErrorCode.VALIDATION_FAILED);
+        assertThat(error.status()).isEqualTo(422);
+        assertThat(error.errors()).isNotEmpty();
+    }
+
+    @Test
+    void test_ac11_patch_status_field_returns_422_unknown_field() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "liam@example.com",
+            "Liam Neeson",
+            "+0111111111"
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        String updateJson = """
+            {
+                "status": "SUSPENDED",
+                "version": 0
+            }
+            """;
+
+        MvcResult patchResult = mockMvc.perform(patch("/api/v1/members/{id}", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(updateJson))
+            .andExpect(status().isUnprocessableEntity())
+            .andReturn();
+
+        ErrorEnvelope error = objectMapper.readValue(
+            patchResult.getResponse().getContentAsString(),
+            ErrorEnvelope.class
+        );
+
+        assertThat(error.code()).isEqualTo(ErrorCode.UNKNOWN_FIELD);
+        assertThat(error.status()).isEqualTo(422);
+    }
+
+    @Test
+    void test_ac12_patch_suspended_member_succeeds_status_untouched() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "maya@example.com",
+            "Maya Angelou",
+            "+1112222222"
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        String updateJson = """
+            {
+                "phone": "+9999911111",
+                "version": 0
+            }
+            """;
+
+        MvcResult patchResult = mockMvc.perform(patch("/api/v1/members/{id}", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(updateJson))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        MemberResponse updated = objectMapper.readValue(
+            patchResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        assertThat(updated.phone()).isEqualTo("+9999911111");
+        assertThat(updated.status()).isEqualTo("ACTIVE");
+    }
+
+    @Test
+    void test_ac13_updated_at_advances_created_and_joined_unchanged() throws Exception {
+        RegisterMemberRequest registerRequest = new RegisterMemberRequest(
+            "nathan@example.com",
+            "Nathan Drake",
+            "+1113333333"
+        );
+        MvcResult registerResult = mockMvc.perform(post("/api/v1/members")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(objectMapper.writeValueAsString(registerRequest)))
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        MemberResponse registered = objectMapper.readValue(
+            registerResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        java.time.Instant createdAtInitial = registered.createdAt();
+        java.time.Instant joinedAtInitial = registered.joinedAt();
+        java.time.Instant updatedAtInitial = registered.updatedAt();
+
+        Thread.sleep(100);
+
+        String updateJson = """
+            {
+                "phone": "+1114444444",
+                "version": 0
+            }
+            """;
+
+        MvcResult patchResult = mockMvc.perform(patch("/api/v1/members/{id}", registered.id())
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(updateJson))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        MemberResponse updated = objectMapper.readValue(
+            patchResult.getResponse().getContentAsString(),
+            MemberResponse.class
+        );
+
+        assertThat(updated.createdAt()).isEqualTo(createdAtInitial);
+        assertThat(updated.joinedAt()).isEqualTo(joinedAtInitial);
+        assertThat(updated.updatedAt()).isAfter(updatedAtInitial);
     }
 }

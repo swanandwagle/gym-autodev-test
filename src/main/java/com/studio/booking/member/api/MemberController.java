@@ -2,7 +2,11 @@ package com.studio.booking.member.api;
 
 import com.studio.booking.member.application.MemberService;
 import com.studio.booking.member.domain.Member;
+import com.studio.booking.shared.error.ApiException;
+import com.studio.booking.shared.error.ErrorCode;
 import com.studio.booking.shared.error.ErrorEnvelope;
+import com.studio.booking.shared.error.FieldError;
+import com.studio.booking.shared.validation.ValidUuid;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -15,6 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/members")
@@ -73,5 +79,104 @@ public class MemberController {
         MemberResponse response = MemberResponse.from(member);
         URI location = URI.create("/api/v1/members/" + member.getId());
         return ResponseEntity.created(location).body(response);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(
+        summary = "Retrieve a member profile",
+        description = "Retrieves the full profile of an existing member by ID."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Member found and returned",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = MemberResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Member not found",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorEnvelope.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "422",
+            description = "Invalid UUID format",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorEnvelope.class)
+            )
+        )
+    })
+    public ResponseEntity<MemberResponse> getMember(@PathVariable @ValidUuid UUID id) {
+        Member member = memberService.getById(id);
+        return ResponseEntity.ok(MemberResponse.from(member));
+    }
+
+    @PatchMapping("/{id}")
+    @Operation(
+        summary = "Update member profile",
+        description = "Partially updates a member's profile with optimistic locking. " +
+                      "Only the provided fields are updated; omitted fields are left unchanged. " +
+                      "Status is not updatable and will be rejected as an unknown field. " +
+                      "Version is mandatory and must match the current version to succeed."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(
+            responseCode = "200",
+            description = "Member successfully updated",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = MemberResponse.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "404",
+            description = "Member not found",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorEnvelope.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "409",
+            description = "Concurrent modification (stale version) or email conflict",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorEnvelope.class)
+            )
+        ),
+        @ApiResponse(
+            responseCode = "422",
+            description = "Validation error (missing version, invalid format, or unknown field)",
+            content = @Content(
+                mediaType = "application/json",
+                schema = @Schema(implementation = ErrorEnvelope.class)
+            )
+        )
+    })
+    public ResponseEntity<MemberResponse> updateMember(
+        @PathVariable @ValidUuid UUID id,
+        @Valid @RequestBody UpdateMemberRequest request
+    ) {
+        if (!request.hasAnyUpdate()) {
+            throw new ApiException(
+                ErrorCode.VALIDATION_FAILED,
+                "At least one field to update is required",
+                List.of(
+                    FieldError.of(
+                        "body",
+                        "REQUIRED",
+                        "At least one field (email, fullName, or phone) is required"
+                    )
+                )
+            );
+        }
+        Member member = memberService.updateMember(id, request);
+        return ResponseEntity.ok(MemberResponse.from(member));
     }
 }
