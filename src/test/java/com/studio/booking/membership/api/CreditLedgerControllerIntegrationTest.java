@@ -93,7 +93,7 @@ class CreditLedgerControllerIntegrationTest {
 
         Membership membership = new Membership(
             memberId, savedPlan.getId(), "ACTIVE", false,
-            10, 10, startsAt, expiresAt
+            10, 10, startsAt, expiresAt, clock
         );
         Membership savedMembership = membershipRepository.save(membership);
         membershipId = savedMembership.getId();
@@ -111,7 +111,7 @@ class CreditLedgerControllerIntegrationTest {
 
         Membership unlimitedMembership = new Membership(
             memberId, savedUnlimitedPlan.getId(), "ACTIVE", true,
-            null, null, startsAt, expiresAt
+            null, null, startsAt, expiresAt, clock
         );
         Membership savedUnlimitedMembership = membershipRepository.save(unlimitedMembership);
         membershipIdUnlimited = savedUnlimitedMembership.getId();

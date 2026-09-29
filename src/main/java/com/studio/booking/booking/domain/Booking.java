@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -43,6 +44,9 @@ public class Booking {
     @Column(name = "idempotency_key")
     private String idempotencyKey;
 
+    @Column(name = "idempotency_response_body")
+    private String idempotencyResponseBody;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -54,13 +58,14 @@ public class Booking {
 
     protected Booking() {}
 
-    public Booking(UUID memberId, UUID sessionId, String source) {
+    public Booking(UUID memberId, UUID sessionId, String source, Clock clock) {
         this.memberId = memberId;
         this.sessionId = sessionId;
         this.status = "BOOKED";
         this.source = source;
-        this.createdAt = Instant.now();
-        this.updatedAt = Instant.now();
+        Instant now = Instant.now(clock);
+        this.createdAt = now;
+        this.updatedAt = now;
     }
 
     public void setSessionId(UUID sessionId) { this.sessionId = sessionId; }
@@ -74,6 +79,7 @@ public class Booking {
     public String getCancellationType() { return cancellationType; }
     public String getCheckedInBy() { return checkedInBy; }
     public String getIdempotencyKey() { return idempotencyKey; }
+    public String getIdempotencyResponseBody() { return idempotencyResponseBody; }
     public Instant getCreatedAt() { return createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public long getVersion() { return version; }
@@ -83,4 +89,5 @@ public class Booking {
     public void setCancellationType(String cancellationType) { this.cancellationType = cancellationType; }
     public void setCheckedInBy(String checkedInBy) { this.checkedInBy = checkedInBy; }
     public void setIdempotencyKey(String idempotencyKey) { this.idempotencyKey = idempotencyKey; }
+    public void setIdempotencyResponseBody(String idempotencyResponseBody) { this.idempotencyResponseBody = idempotencyResponseBody; }
 }
