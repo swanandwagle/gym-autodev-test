@@ -156,7 +156,8 @@ class MembershipAssignmentIntegrationTest {
             10,
             10,
             now,
-            activeExpiry
+            activeExpiry,
+            clock
         );
         membershipRepository.save(active);
 
@@ -195,7 +196,8 @@ class MembershipAssignmentIntegrationTest {
             10,
             10,
             now,
-            activeExpiry
+            activeExpiry,
+            clock
         );
         membershipRepository.save(active);
 
@@ -235,7 +237,8 @@ class MembershipAssignmentIntegrationTest {
             10,
             10,
             now,
-            activeExpiry
+            activeExpiry,
+            clock
         );
         membershipRepository.save(active);
 
@@ -274,7 +277,8 @@ class MembershipAssignmentIntegrationTest {
             10,
             10,
             now,
-            activeExpiry
+            activeExpiry,
+            clock
         );
         membershipRepository.save(active);
 

@@ -96,7 +96,8 @@ class MembershipRetrievalIntegrationTest {
             10,
             10,
             now,
-            now.plus(30, ChronoUnit.DAYS)
+            now.plus(30, ChronoUnit.DAYS),
+            clock
         );
         Membership saved = membershipRepository.save(membership);
 
@@ -170,7 +171,8 @@ class MembershipRetrievalIntegrationTest {
             10,
             10,
             now.minus(60, ChronoUnit.DAYS),
-            now.minus(30, ChronoUnit.DAYS)
+            now.minus(30, ChronoUnit.DAYS),
+            clock
         );
         Membership m2 = new Membership(
             memberId,
@@ -180,7 +182,8 @@ class MembershipRetrievalIntegrationTest {
             10,
             10,
             now.minus(20, ChronoUnit.DAYS),
-            now.plus(10, ChronoUnit.DAYS)
+            now.plus(10, ChronoUnit.DAYS),
+            clock
         );
         Membership m3 = new Membership(
             memberId,
@@ -224,7 +227,8 @@ class MembershipRetrievalIntegrationTest {
             10,
             10,
             now.minus(60, ChronoUnit.DAYS),
-            now.minus(30, ChronoUnit.DAYS)
+            now.minus(30, ChronoUnit.DAYS),
+            clock
         );
         Membership m2 = new Membership(
             memberId,
@@ -234,7 +238,8 @@ class MembershipRetrievalIntegrationTest {
             10,
             10,
             now.minus(20, ChronoUnit.DAYS),
-            now.plus(10, ChronoUnit.DAYS)
+            now.plus(10, ChronoUnit.DAYS),
+            clock
         );
         Membership m3 = new Membership(
             memberId,
@@ -330,7 +335,8 @@ class MembershipRetrievalIntegrationTest {
             10,
             10,
             startsAt,
-            expiresAt
+            expiresAt,
+            clock
         );
         Membership saved = membershipRepository.save(membership);
 
@@ -367,7 +373,8 @@ class MembershipRetrievalIntegrationTest {
             10,
             10,
             startsAt,
-            expiresAt
+            expiresAt,
+            clock
         );
         Membership saved = membershipRepository.save(membership);
 
@@ -398,7 +405,8 @@ class MembershipRetrievalIntegrationTest {
             10,
             10,
             startsAt,
-            expiresAt
+            expiresAt,
+            clock
         );
         Membership saved = membershipRepository.save(membership);
 
