@@ -18,6 +18,7 @@ jobs:
     env:
       ORCHESTRATOR: C:\Projects\ai-delivery-orchestrator
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      CODEX_CMD: 'C:\Users\Swanand Wagle\AppData\Local\Programs\OpenAI\Codex\bin\codex.exe'
       CLAUDE_CMD: C:\actions-runner\claude.exe
       CLAUDE_CONFIG_DIR: C:\actions-runner\.claude
     steps:
