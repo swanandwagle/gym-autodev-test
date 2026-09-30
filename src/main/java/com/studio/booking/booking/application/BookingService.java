@@ -5,7 +5,6 @@ import com.studio.booking.booking.infrastructure.BookingRepository;
 import com.studio.booking.catalog.domain.ClassSession;
 import com.studio.booking.catalog.infrastructure.ClassSessionRepository;
 import com.studio.booking.member.application.MemberStatusGate;
-import com.studio.booking.member.domain.Member;
 import com.studio.booking.membership.application.CreditPort;
 import com.studio.booking.membership.domain.Membership;
 import com.studio.booking.shared.error.ApiException;
@@ -17,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -52,10 +50,15 @@ public class BookingService {
 
     @Transactional
     public BookingCreateResult createBooking(UUID memberId, UUID sessionId, String actorType) {
-        // Load and lock member first (member lock must be acquired before overlap check)
-        Member member = memberStatusGate.loadForTransaction(memberId);
+        // Load and lock session first (lock acquisition order: session → member → membership)
+        ClassSession session = classSessionRepository.findByIdWithLock(sessionId)
+            .orElseThrow(() -> new ApiException(
+                ErrorCode.SESSION_NOT_FOUND,
+                "No class session found with the given identifier",
+                null
+            ));
 
-        // Check eligibility using shared service (includes overlap check while member is locked)
+        // Check eligibility using shared service (acquires member lock inside, includes overlap check)
         BookingCreationService.EligibilityResult eligibility = bookingCreationService.checkEligibility(memberId, sessionId);
         if (!eligibility.isEligible()) {
             if (eligibility.getSkipReason() == BookingCreationService.SkipReason.BOOKING_OVERLAPS_EXISTING) {
@@ -72,14 +75,6 @@ public class BookingService {
                 null
             );
         }
-
-        // Load and lock session for capacity check
-        ClassSession session = classSessionRepository.findByIdWithLock(sessionId)
-            .orElseThrow(() -> new ApiException(
-                ErrorCode.SESSION_NOT_FOUND,
-                "No class session found with the given identifier",
-                null
-            ));
 
         // Validate session status (must not be cancelled)
         if ("CANCELLED".equals(session.getStatus())) {
