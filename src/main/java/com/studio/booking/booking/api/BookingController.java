@@ -90,7 +90,7 @@ public class BookingController {
         ),
         @ApiResponse(
             responseCode = "409",
-            description = "Conflict: session full/cancelled/started, duplicate booking, no credits, idempotency key mismatch",
+            description = "Conflict: session full/cancelled/started, duplicate booking, no credits, overlapping booking, idempotency key mismatch",
             content = @Content(
                 mediaType = "application/json",
                 schema = @Schema(implementation = ErrorEnvelope.class)
