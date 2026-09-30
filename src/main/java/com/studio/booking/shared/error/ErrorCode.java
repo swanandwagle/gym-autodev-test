@@ -125,6 +125,9 @@ public enum ErrorCode {
     /** The session overlaps with another confirmed booking for this member. */
     OVERLAPPING_BOOKING(HttpStatus.CONFLICT),
 
+    /** The session overlaps with an existing BOOKED booking for this member. */
+    BOOKING_OVERLAPS_EXISTING(HttpStatus.CONFLICT),
+
     /** Cancellation is past the refund window; no refund will be issued. */
     LATE_CANCEL_NO_REFUND(HttpStatus.CONFLICT),
 

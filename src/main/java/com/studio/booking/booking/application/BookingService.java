@@ -30,6 +30,7 @@ public class BookingService {
     private final MemberStatusGate memberStatusGate;
     private final NotificationLogRepository notificationLogRepository;
     private final Clock clock;
+    private final BookingCreationService bookingCreationService;
 
     public BookingService(
         BookingRepository bookingRepository,
@@ -37,7 +38,8 @@ public class BookingService {
         CreditPort creditPort,
         MemberStatusGate memberStatusGate,
         NotificationLogRepository notificationLogRepository,
-        Clock clock
+        Clock clock,
+        BookingCreationService bookingCreationService
     ) {
         this.bookingRepository = bookingRepository;
         this.classSessionRepository = classSessionRepository;
@@ -45,27 +47,31 @@ public class BookingService {
         this.memberStatusGate = memberStatusGate;
         this.notificationLogRepository = notificationLogRepository;
         this.clock = clock;
+        this.bookingCreationService = bookingCreationService;
     }
 
     @Transactional
     public BookingCreateResult createBooking(UUID memberId, UUID sessionId, String actorType) {
-        // Load and lock member first (suspension check first per AC-9)
+        // Load and lock member first (member lock must be acquired before overlap check)
         Member member = memberStatusGate.loadForTransaction(memberId);
-        memberStatusGate.requireActive(member);
 
-        // Check membership is active (membership must be usable for booking)
-        Optional<Membership> membershipOpt = creditPort.loadUsableForBooking(memberId);
-        if (membershipOpt.isEmpty()) {
+        // Check eligibility using shared service (includes overlap check while member is locked)
+        BookingCreationService.EligibilityResult eligibility = bookingCreationService.checkEligibility(memberId, sessionId);
+        if (!eligibility.isEligible()) {
+            if (eligibility.getSkipReason() == BookingCreationService.SkipReason.BOOKING_OVERLAPS_EXISTING) {
+                throw new ApiException(
+                    ErrorCode.BOOKING_OVERLAPS_EXISTING,
+                    "Member has a booking that overlaps with this session",
+                    null
+                );
+            }
+            // For other skip reasons, throw appropriate error
             throw new ApiException(
-                ErrorCode.MEMBER_INACTIVE,
-                "The member account is inactive and cannot perform this action",
+                eligibility.getErrorCode(),
+                "Booking eligibility check failed",
                 null
             );
         }
-        Membership membership = membershipOpt.get();
-
-        // Check credits are available BEFORE checking capacity (AC-8: credits before capacity)
-        creditPort.requireCredit(membership.getId());
 
         // Load and lock session for capacity check
         ClassSession session = classSessionRepository.findByIdWithLock(sessionId)
@@ -94,17 +100,6 @@ public class BookingService {
             );
         }
 
-        // Check for duplicate booking (must be non-cancelled only per AC-13)
-        boolean existingNonCancelledBooking = bookingRepository.findBookedBySessionId(sessionId).stream()
-            .anyMatch(b -> b.getMemberId().equals(memberId) && !"CANCELLED".equals(b.getStatus()));
-        if (existingNonCancelledBooking) {
-            throw new ApiException(
-                ErrorCode.DUPLICATE_BOOKING,
-                "A non-cancelled booking already exists for this member and session",
-                null
-            );
-        }
-
         // Check session has capacity
         if (session.getBookedCount() >= session.getCapacity()) {
             throw new ApiException(
@@ -113,6 +108,17 @@ public class BookingService {
                 null
             );
         }
+
+        // Load membership for credit deduction
+        Optional<Membership> membershipOpt = creditPort.loadUsableForBooking(memberId);
+        if (membershipOpt.isEmpty()) {
+            throw new ApiException(
+                ErrorCode.MEMBER_INACTIVE,
+                "The member account is inactive and cannot perform this action",
+                null
+            );
+        }
+        Membership membership = membershipOpt.get();
 
         // Determine source
         String source = "STAFF".equalsIgnoreCase(actorType) ? "STAFF" : "DIRECT";

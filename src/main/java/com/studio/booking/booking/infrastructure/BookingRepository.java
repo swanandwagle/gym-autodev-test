@@ -22,6 +22,12 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
     @Query("""
         SELECT b FROM Booking b
+        WHERE b.memberId = :memberId
+    """)
+    List<Booking> findByMemberId(@Param("memberId") UUID memberId);
+
+    @Query("""
+        SELECT b FROM Booking b
         WHERE b.memberId = :memberId AND b.idempotencyKey = :idempotencyKey
     """)
     Optional<Booking> findByMemberIdAndIdempotencyKey(
