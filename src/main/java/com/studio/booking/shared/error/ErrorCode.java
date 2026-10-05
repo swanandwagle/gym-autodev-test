@@ -101,6 +101,9 @@ public enum ErrorCode {
     /** The booking is already in a cancelled state. */
     BOOKING_ALREADY_CANCELLED(HttpStatus.CONFLICT),
 
+    /** The booking is not in a cancellable state. */
+    BOOKING_NOT_CANCELLABLE(HttpStatus.CONFLICT),
+
     /** The booking has already been checked in. */
     BOOKING_ALREADY_CHECKED_IN(HttpStatus.CONFLICT),
 

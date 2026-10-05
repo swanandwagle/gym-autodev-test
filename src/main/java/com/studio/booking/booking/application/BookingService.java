@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.time.Instant;
 import java.util.List;
+import java.time.Duration;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -157,6 +158,41 @@ public class BookingService {
         return bookingRepository.findDetailById(bookingId).orElseThrow(() ->
             new ApiException(ErrorCode.BOOKING_NOT_FOUND, "No booking found with the given identifier"));
     }
+
+    @Transactional
+    public BookingCancellationResult cancelBooking(UUID bookingId) {
+        Booking initial = bookingRepository.findById(bookingId).orElseThrow(() ->
+            new ApiException(ErrorCode.BOOKING_NOT_FOUND, "No booking found with the given identifier"));
+        ClassSession session = classSessionRepository.findByIdWithLock(initial.getSessionId()).orElseThrow(() ->
+            new ApiException(ErrorCode.SESSION_NOT_FOUND, "No class session found with the given identifier"));
+        Booking booking = bookingRepository.findByIdWithLock(bookingId).orElseThrow(() ->
+            new ApiException(ErrorCode.BOOKING_NOT_FOUND, "No booking found with the given identifier"));
+        Instant now = Instant.now(clock);
+        if (!"BOOKED".equals(booking.getStatus())) {
+            throw new ApiException(ErrorCode.BOOKING_NOT_CANCELLABLE,
+                "Booking status " + booking.getStatus() + " cannot be cancelled");
+        }
+        if (!now.isBefore(session.getStartsAt())) {
+            throw new ApiException(ErrorCode.SESSION_ALREADY_STARTED, "The session has already started");
+        }
+        boolean standard = Duration.between(now, session.getStartsAt()).compareTo(Duration.ofHours(4)) >= 0;
+        boolean unlimited = creditPort.isUnlimited(booking.getMembershipId());
+        boolean refunded = standard && !unlimited;
+        if (refunded) creditPort.refund(booking.getMembershipId(), "CANCEL_REFUND");
+        booking.setStatus("CANCELLED");
+        booking.setCancellationType(standard ? "STANDARD" : "LATE");
+        booking.setCreditRefunded(refunded);
+        booking.setCancelledAt(now);
+        bookingRepository.save(booking);
+        session.setBookedCount(Math.max(0, session.getBookedCount() - 1));
+        classSessionRepository.save(session);
+        notificationLogRepository.save(new NotificationLog(booking.getMemberId(), "BOOKING_CANCELLED", "LOG",
+            "{\"bookingId\":\"" + bookingId + "\",\"sessionId\":\"" + session.getId() + "\"}", "SYSTEM", clock));
+        return new BookingCancellationResult(bookingId, now, standard ? "STANDARD" : "LATE", refunded, null);
+    }
+
+    public record BookingCancellationResult(UUID bookingId, Instant cancelledAt, String cancellationType,
+                                            boolean creditRefunded, UUID promotedWaitlistEntryId) {}
 
     @Transactional(readOnly = true)
     public Page<BookingRepository.BookingDetail> getMemberHistory(UUID memberId, List<String> statuses,

@@ -82,4 +82,6 @@ public interface CreditPort {
      * @param reason the reason code (CANCEL_REFUND, SESSION_CANCELLED_REFUND, STAFF_ADJUSTMENT, etc.)
      */
     void refund(UUID membershipId, String reason);
+
+    boolean isUnlimited(UUID membershipId);
 }
