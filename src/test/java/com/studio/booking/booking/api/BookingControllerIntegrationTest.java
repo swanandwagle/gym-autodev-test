@@ -41,6 +41,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
@@ -156,6 +157,55 @@ class BookingControllerIntegrationTest {
 
         String location = result.getResponse().getHeader("Location");
         assertThat(location).contains("/api/v1/bookings/").endsWith(response.id());
+    }
+
+    @Test
+    void getBookingReturnsFullRepresentationWithEmbeddedSession() throws Exception {
+        Membership membership = membershipRepository.save(new Membership(testMemberId, creditPlan.getId(), 10, clock));
+        MvcResult created = mockMvc.perform(post("/api/v1/bookings")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new CreateBookingRequest(testMemberId.toString(), testSessionId.toString()))))
+            .andExpect(status().isCreated()).andReturn();
+        String id = objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asText();
+        MvcResult retrieved = mockMvc.perform(get("/api/v1/bookings/{id}", id))
+            .andExpect(status().isOk()).andReturn();
+        var json = objectMapper.readTree(retrieved.getResponse().getContentAsString());
+        assertThat(json.get("id").asText()).isEqualTo(id);
+        assertThat(json.get("membershipId").asText()).isEqualTo(membership.getId().toString());
+        assertThat(json.get("session").get("id").asText()).isEqualTo(testSessionId.toString());
+    }
+
+    @Test
+    void getUnknownBookingReturnsBookingNotFound() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/v1/bookings/{id}", UUID.randomUUID()))
+            .andExpect(status().isNotFound()).andReturn();
+        ErrorEnvelope error = objectMapper.readValue(result.getResponse().getContentAsString(), ErrorEnvelope.class);
+        assertThat(error.code()).isEqualTo("BOOKING_NOT_FOUND");
+    }
+
+    @Test
+    void malformedBookingUuidReturns422() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/v1/bookings/not-a-uuid"))
+            .andExpect(status().isUnprocessableEntity()).andReturn();
+        ErrorEnvelope error = objectMapper.readValue(result.getResponse().getContentAsString(), ErrorEnvelope.class);
+        assertThat(error.code()).isEqualTo("INVALID_FORMAT");
+    }
+
+    @Test
+    void memberWithNoBookingsGetsEmptyPage() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/v1/members/{id}/bookings", testMemberId))
+            .andExpect(status().isOk()).andReturn();
+        var json = objectMapper.readTree(result.getResponse().getContentAsString());
+        assertThat(json.get("content")).isEmpty();
+        assertThat(json.get("page").get("totalElements").asLong()).isZero();
+    }
+
+    @Test
+    void unknownMemberHistoryReturnsMemberNotFound() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/v1/members/{id}/bookings", UUID.randomUUID()))
+            .andExpect(status().isNotFound()).andReturn();
+        ErrorEnvelope error = objectMapper.readValue(result.getResponse().getContentAsString(), ErrorEnvelope.class);
+        assertThat(error.code()).isEqualTo("MEMBER_NOT_FOUND");
     }
 
     @Test

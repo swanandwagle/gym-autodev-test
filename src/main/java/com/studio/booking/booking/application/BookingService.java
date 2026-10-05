@@ -18,6 +18,11 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
+import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 @Service
 public class BookingService {
@@ -145,6 +150,27 @@ public class BookingService {
         notificationLogRepository.save(notification);
 
         return new BookingCreateResult(booking, creditDeducted);
+    }
+
+    @Transactional(readOnly = true)
+    public BookingRepository.BookingDetail getBooking(UUID bookingId) {
+        return bookingRepository.findDetailById(bookingId).orElseThrow(() ->
+            new ApiException(ErrorCode.BOOKING_NOT_FOUND, "No booking found with the given identifier"));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<BookingRepository.BookingDetail> getMemberHistory(UUID memberId, List<String> statuses,
+            Instant from, Instant to, boolean upcomingOnly, int page, int size) {
+        try {
+            memberStatusGate.loadForTransaction(memberId);
+        } catch (ApiException e) {
+            throw new ApiException(ErrorCode.MEMBER_NOT_FOUND, "No member found with the given identifier");
+        }
+        List<String> dbStatuses = statuses == null ? null : statuses.stream()
+            .map(s -> "ATTENDED".equals(s) ? "CHECKED_IN" : s).toList();
+        String statusFilter = dbStatuses == null ? null : String.join(",", dbStatuses);
+        return bookingRepository.findHistory(memberId, statusFilter, from, to, upcomingOnly, Instant.now(clock),
+            PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "startsAt")));
     }
 
     public static class BookingCreateResult {

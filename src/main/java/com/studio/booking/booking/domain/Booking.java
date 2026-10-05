@@ -41,6 +41,12 @@ public class Booking {
     @Column(name = "checked_in_by")
     private String checkedInBy;
 
+    @Column(name = "checked_in_at")
+    private Instant checkedInAt;
+
+    @Column(name = "credit_refunded")
+    private Boolean creditRefunded;
+
     @Column(name = "idempotency_key")
     private String idempotencyKey;
 
@@ -78,6 +84,8 @@ public class Booking {
     public String getSource() { return source; }
     public String getCancellationType() { return cancellationType; }
     public String getCheckedInBy() { return checkedInBy; }
+    public Instant getCheckedInAt() { return checkedInAt; }
+    public Boolean getCreditRefunded() { return creditRefunded; }
     public String getIdempotencyKey() { return idempotencyKey; }
     public String getIdempotencyResponseBody() { return idempotencyResponseBody; }
     public Instant getCreatedAt() { return createdAt; }
@@ -88,6 +96,8 @@ public class Booking {
     public void setStatus(String status) { this.status = status; }
     public void setCancellationType(String cancellationType) { this.cancellationType = cancellationType; }
     public void setCheckedInBy(String checkedInBy) { this.checkedInBy = checkedInBy; }
+    public void setCheckedInAt(Instant checkedInAt) { this.checkedInAt = checkedInAt; }
+    public void setCreditRefunded(Boolean creditRefunded) { this.creditRefunded = creditRefunded; }
     public void setIdempotencyKey(String idempotencyKey) { this.idempotencyKey = idempotencyKey; }
     public void setIdempotencyResponseBody(String idempotencyResponseBody) { this.idempotencyResponseBody = idempotencyResponseBody; }
 }

@@ -47,6 +47,18 @@ public class BookingController {
         this.objectMapper = objectMapper;
     }
 
+    @GetMapping("/{id}")
+    @Operation(summary = "Get a booking", description = "Returns the full booking representation with session detail.")
+    @ApiResponses({@ApiResponse(responseCode="200", description="Booking found"), @ApiResponse(responseCode="404", description="BOOKING_NOT_FOUND"), @ApiResponse(responseCode="422", description="Malformed UUID")})
+    public BookingResponse getBooking(@PathVariable String id) {
+        return BookingResponse.from(bookingService.getBooking(parseUuid(id, "id")));
+    }
+
+    private UUID parseUuid(String value, String field) {
+        try { return UUID.fromString(value); }
+        catch (IllegalArgumentException ex) { throw new ApiException(ErrorCode.INVALID_FORMAT, field + " must be a UUID"); }
+    }
+
     @PostMapping
     @Operation(
         summary = "Create a booking",
