@@ -42,6 +42,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
@@ -248,6 +249,43 @@ class BookingControllerIntegrationTest {
         assertThat(txn.getDelta()).isEqualTo(-1);
         assertThat(txn.getReason()).isEqualTo("BOOKING");
         assertThat(txn.getBalanceAfter()).isEqualTo(9);
+    }
+
+    @Test
+    void cancellationInLateWindowCancelsBookingWithoutRefundAndWritesNotification() throws Exception {
+        Membership membership = membershipRepository.save(new Membership(testMemberId, creditPlan.getId(), 10, clock));
+        MvcResult created = mockMvc.perform(post("/api/v1/bookings")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new CreateBookingRequest(testMemberId.toString(), testSessionId.toString()))))
+            .andExpect(status().isCreated()).andReturn();
+        UUID bookingId = UUID.fromString(objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asText());
+
+        MvcResult cancelled = mockMvc.perform(delete("/api/v1/bookings/{id}", bookingId))
+            .andExpect(status().isOk()).andReturn();
+        var response = objectMapper.readTree(cancelled.getResponse().getContentAsString());
+        assertThat(response.get("status").asText()).isEqualTo("CANCELLED");
+        assertThat(response.get("cancellationType").asText()).isEqualTo("LATE");
+        assertThat(response.get("creditRefunded").asBoolean()).isFalse();
+        assertThat(bookingRepository.findById(bookingId).orElseThrow().getCancelledAt()).isNotNull();
+        assertThat(classSessionRepository.findById(testSessionId).orElseThrow().getBookedCount()).isZero();
+        assertThat(membershipRepository.findById(membership.getId()).orElseThrow().getCreditsRemaining()).isEqualTo(9);
+        assertThat(notificationLogRepository.findByMemberId(testMemberId).stream()
+            .filter(n -> "BOOKING_CANCELLED".equals(n.getEventType()))).hasSize(1);
+    }
+
+    @Test
+    void cancellationRejectsAlreadyCancelledBookingWithBookingNotCancellable() throws Exception {
+        membershipRepository.save(new Membership(testMemberId, creditPlan.getId(), 10, clock));
+        MvcResult created = mockMvc.perform(post("/api/v1/bookings")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(new CreateBookingRequest(testMemberId.toString(), testSessionId.toString()))))
+            .andExpect(status().isCreated()).andReturn();
+        String bookingId = objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asText();
+        mockMvc.perform(delete("/api/v1/bookings/{id}", bookingId)).andExpect(status().isOk());
+        MvcResult result = mockMvc.perform(delete("/api/v1/bookings/{id}", bookingId))
+            .andExpect(status().isConflict()).andReturn();
+        ErrorEnvelope error = objectMapper.readValue(result.getResponse().getContentAsString(), ErrorEnvelope.class);
+        assertThat(error.code()).isEqualTo("BOOKING_NOT_CANCELLABLE");
     }
 
     @Test

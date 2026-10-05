@@ -178,4 +178,20 @@ public class BookingController {
         URI location = URI.create("/api/v1/bookings/" + booking.getId());
         return ResponseEntity.created(location).body(response);
     }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Cancel a booking", description = "Cancels a booked spot. A successful cancellation does not imply available capacity because a waitlisted member may be promoted immediately. Credits are refunded when cancellation is at least four hours before the session.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Booking cancelled"),
+        @ApiResponse(responseCode = "404", description = "BOOKING_NOT_FOUND"),
+        @ApiResponse(responseCode = "409", description = "BOOKING_NOT_CANCELLABLE or SESSION_ALREADY_STARTED"),
+        @ApiResponse(responseCode = "422", description = "Invalid booking ID or reason exceeds 255 characters")
+    })
+    public CancelBookingResponse cancelBooking(@PathVariable String id,
+            @Valid @RequestBody(required = false) CancelBookingRequest request) {
+        UUID bookingId = parseUuid(id, "id");
+        BookingService.BookingCancellationResult result = bookingService.cancelBooking(bookingId);
+        return new CancelBookingResponse(result.bookingId(), "CANCELLED", result.cancelledAt(),
+            result.cancellationType(), result.creditRefunded(), result.promotedWaitlistEntryId());
+    }
 }

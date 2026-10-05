@@ -1,0 +1,1 @@
+ALTER TABLE booking ADD COLUMN cancelled_at TIMESTAMPTZ;

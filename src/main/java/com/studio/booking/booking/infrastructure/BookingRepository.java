@@ -2,6 +2,8 @@ package com.studio.booking.booking.infrastructure;
 
 import com.studio.booking.booking.domain.Booking;
 import org.springframework.data.jpa.repository.JpaRepository;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -15,6 +17,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface BookingRepository extends JpaRepository<Booking, UUID> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT b FROM Booking b WHERE b.id = :id")
+    Optional<Booking> findByIdWithLock(@Param("id") UUID id);
 
     interface BookingDetail {
         UUID getId(); UUID getMemberId(); UUID getSessionId(); UUID getMembershipId();

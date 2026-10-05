@@ -143,4 +143,12 @@ public class CreditPortImpl implements CreditPort {
         );
         creditTransactionRepository.save(transaction);
     }
+
+    @Override
+    public boolean isUnlimited(UUID membershipId) {
+        return membershipRepository.findByIdWithLock(membershipId)
+            .orElseThrow(() -> new ApiException(ErrorCode.MEMBERSHIP_NOT_FOUND,
+                "No membership exists for the given ID", null))
+            .isUnlimited();
+    }
 }
