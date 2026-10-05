@@ -12,4 +12,7 @@ public interface CreditTransactionRepository extends JpaRepository<CreditTransac
 
     @Query("SELECT t FROM CreditTransaction t WHERE t.membershipId = :membershipId ORDER BY t.createdAt ASC")
     List<CreditTransaction> findByMembershipIdOrderByCreatedAtAsc(@Param("membershipId") UUID membershipId);
+
+    @Query("SELECT t FROM CreditTransaction t WHERE t.membershipId = :membershipId ORDER BY t.createdAt DESC")
+    List<CreditTransaction> findByMembershipIdOrderByCreatedAtDesc(@Param("membershipId") UUID membershipId);
 }

@@ -2,6 +2,8 @@ package com.studio.booking.catalog.infrastructure;
 
 import com.studio.booking.catalog.domain.ClassSession;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -101,5 +103,26 @@ public interface ClassSessionRepository extends JpaRepository<ClassSession, UUID
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM ClassSession s WHERE s.id = :id")
     Optional<ClassSession> findByIdWithLock(@Param("id") UUID id);
+
+    @Query("""
+        SELECT s FROM ClassSession s
+        WHERE s.startsAt >= :from
+          AND s.startsAt < :to
+          AND (:classTypeId IS NULL OR s.classTypeId = :classTypeId)
+          AND (:instructorId IS NULL OR s.instructorId = :instructorId)
+          AND (:roomId IS NULL OR s.roomId = :roomId)
+          AND s.status = :status
+          AND (:availableOnly = false OR s.bookedCount < s.capacity)
+    """)
+    Page<ClassSession> findSessionsWithFilters(
+            @Param("from") Instant from,
+            @Param("to") Instant to,
+            @Param("classTypeId") UUID classTypeId,
+            @Param("instructorId") UUID instructorId,
+            @Param("roomId") UUID roomId,
+            @Param("status") String status,
+            @Param("availableOnly") boolean availableOnly,
+            Pageable pageable
+    );
 }
 

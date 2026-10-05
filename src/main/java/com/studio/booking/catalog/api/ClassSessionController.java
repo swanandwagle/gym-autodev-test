@@ -1,5 +1,6 @@
 package com.studio.booking.catalog.api;
 
+import com.studio.booking.catalog.api.request.BrowseSessionsRequest;
 import com.studio.booking.catalog.api.request.CancelSessionRequest;
 import com.studio.booking.catalog.api.request.CreateClassSessionRequest;
 import com.studio.booking.catalog.api.request.CreateRecurringSessionsRequest;
@@ -8,10 +9,12 @@ import com.studio.booking.catalog.api.response.CancelSessionResponse;
 import com.studio.booking.catalog.api.response.ClassSessionScheduleResponse;
 import com.studio.booking.catalog.api.response.CreateRecurringSessionsResponse;
 import com.studio.booking.catalog.api.response.PatchClassSessionResponse;
+import com.studio.booking.catalog.application.BrowseSessionsService;
 import com.studio.booking.catalog.application.ClassSessionService;
 import com.studio.booking.catalog.application.RecurringSessionGenerator;
 import com.studio.booking.catalog.infrastructure.ClassSessionRepository;
 import com.studio.booking.shared.validation.ValidUuid;
+import com.studio.booking.shared.web.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,11 +34,52 @@ public class ClassSessionController {
     private final ClassSessionService service;
     private final RecurringSessionGenerator recurringGenerator;
     private final ClassSessionRepository sessionRepository;
+    private final BrowseSessionsService browseService;
 
-    public ClassSessionController(ClassSessionService service, RecurringSessionGenerator recurringGenerator, ClassSessionRepository sessionRepository) {
+    public ClassSessionController(ClassSessionService service, RecurringSessionGenerator recurringGenerator, ClassSessionRepository sessionRepository, BrowseSessionsService browseService) {
         this.service = service;
         this.recurringGenerator = recurringGenerator;
         this.sessionRepository = sessionRepository;
+        this.browseService = browseService;
+    }
+
+    @GetMapping("/browse")
+    @Operation(
+        summary = "Browse upcoming fitness class sessions",
+        description = """
+            Query and filter upcoming class sessions with pagination.
+
+            Default behavior (no parameters): returns SCHEDULED sessions for the next 7 days.
+
+            Time range semantics:
+            - If neither from nor to is provided, defaults to [now, now + 7 days)
+            - from and to must both be provided or both be absent
+            - All boundaries use half-open semantics: [from, to), where from is inclusive and to is exclusive
+            - Date shorthand (date=YYYY-MM-DD) returns sessions for that entire studio-local day and cannot be combined with from/to
+            - Query span cannot exceed 92 days
+
+            Filter behavior:
+            - Unknown filter IDs (classTypeId, instructorId, roomId) return 200 with empty page, not 404
+            - Filters are combined with AND logic (all must match)
+            - availableOnly=true excludes full sessions (bookedCount == capacity)
+            - status defaults to SCHEDULED if not provided
+
+            Sort:
+            - Only startsAt is supported; defaults to startsAt,asc
+            - sort syntax: field,asc or field,desc
+
+            Pagination:
+            - page: zero-based page number (default 0)
+            - size: results per page, between 1 and 100 (default 20)
+
+            All timestamps in response are in UTC regardless of the offset used in from/to.
+            """
+    )
+    @ApiResponse(responseCode = "200", description = "Sessions retrieved successfully")
+    @ApiResponse(responseCode = "422", description = "Validation failed (e.g. invalid range, out of range span, invalid sort)")
+    public ResponseEntity<PageResponse<ClassSessionScheduleResponse>> browse(BrowseSessionsRequest request) {
+        PageResponse<ClassSessionScheduleResponse> response = browseService.browse(request);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping

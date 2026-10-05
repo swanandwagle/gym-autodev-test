@@ -92,7 +92,11 @@ Rule of thumb: **422 = request wrong regardless of state; 409 = well-formed but 
 
 - Pessimistic row lock (`SELECT … FOR UPDATE`) on `class_session` for any capacity-affecting operation
 - `@Version` (optimistic) on all mutable aggregates for stale-update detection
-- Lock acquisition order (always follow to prevent deadlocks): `class_session → member → membership`
+- **Lock acquisition order (always follow to prevent deadlocks): `class_session → member → membership`**
+  - This order is enforced in `BookingService.createBooking()` and must be followed in all paths that lock multiple rows
+  - Rationale: Booking operations lock the session first (for capacity check), then the member (for overlap check), then the membership (for credit deduction)
+  - Violating this order creates circular wait conditions and causes deadlock
+  - See `GYM-47` concurrency tests for deadlock verification tests
 - When locking multiple members in one transaction, lock in ascending `member_id` order
 - Set `jakarta.persistence.lock.timeout` (~3 s) so a stuck lock surfaces as `CONCURRENT_MODIFICATION 409`
 

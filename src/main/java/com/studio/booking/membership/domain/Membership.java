@@ -56,7 +56,7 @@ public class Membership {
     protected Membership() {}
 
     public Membership(UUID memberId, UUID planId, String status, boolean unlimited,
-                      Integer creditsInitial, Integer creditsRemaining, Instant startsAt, Instant expiresAt) {
+                      Integer creditsInitial, Integer creditsRemaining, Instant startsAt, Instant expiresAt, Clock clock) {
         this.memberId = memberId;
         this.planId = planId;
         this.status = status;
@@ -65,8 +65,23 @@ public class Membership {
         this.creditsRemaining = creditsRemaining;
         this.startsAt = startsAt;
         this.expiresAt = expiresAt;
-        this.createdAt = Instant.now(Clock.systemUTC());
-        this.updatedAt = Instant.now(Clock.systemUTC());
+        Instant now = Instant.now(clock);
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    public Membership(UUID memberId, UUID planId, Integer creditsRemaining, Clock clock) {
+        Instant now = Instant.now(clock);
+        this.memberId = memberId;
+        this.planId = planId;
+        this.status = "ACTIVE";
+        this.unlimited = false;
+        this.creditsInitial = creditsRemaining;
+        this.creditsRemaining = creditsRemaining;
+        this.startsAt = now;
+        this.expiresAt = now.plusSeconds(31536000);
+        this.createdAt = now;
+        this.updatedAt = now;
     }
 
     public UUID getId() { return id; }
@@ -92,5 +107,17 @@ public class Membership {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public void setStartsAt(Instant startsAt) {
+        this.startsAt = startsAt;
+    }
+
+    public void setExpiresAt(Instant expiresAt) {
+        this.expiresAt = expiresAt;
+    }
+
+    public void setUnlimited(boolean unlimited) {
+        this.unlimited = unlimited;
     }
 }

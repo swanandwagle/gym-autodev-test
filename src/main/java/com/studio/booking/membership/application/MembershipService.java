@@ -147,7 +147,8 @@ public class MembershipService {
             creditsInitial,
             creditsRemaining,
             actualStartsAt,
-            expiresAt
+            expiresAt,
+            clock
         );
 
         return membershipRepository.save(membership);

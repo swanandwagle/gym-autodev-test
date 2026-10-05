@@ -96,7 +96,8 @@ class MembershipCancellationIntegrationTest {
             10,
             10,
             now.plus(10, ChronoUnit.DAYS),
-            now.plus(40, ChronoUnit.DAYS)
+            now.plus(40, ChronoUnit.DAYS),
+            clock
         );
         Membership saved = membershipRepository.save(membership);
 
@@ -266,7 +267,8 @@ class MembershipCancellationIntegrationTest {
             10,
             10,
             now.plus(10, ChronoUnit.DAYS),
-            now.plus(40, ChronoUnit.DAYS)
+            now.plus(40, ChronoUnit.DAYS),
+            clock
         );
         Membership saved = membershipRepository.save(membership);
 
