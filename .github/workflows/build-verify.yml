@@ -1,0 +1,16 @@
+name: build-verify
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: self-hosted
+    defaults:
+      run:
+        shell: cmd
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run mvn verify
+        run: "C:\Users\Swanand Wagle\OneDrive\Documents\Swanand Wagle\Work\Softwares\apache-maven-3.8.6-bin\apache-maven-3.8.6\bin\mvn.cmd" verify
