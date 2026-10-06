@@ -118,7 +118,7 @@ class BookingCreationServiceTest {
         // Mock setup
         when(memberStatusGate.loadForTransaction(memberId)).thenReturn(testMember);
         when(creditPort.loadUsableForBooking(memberId)).thenReturn(Optional.of(testMembership));
-        when(creditPort.requireCredit(testMembership.getId())).thenReturn(null);
+        doNothing().when(creditPort).requireCredit(testMembership.getId());
         when(classSessionRepository.findById(sessionId)).thenReturn(Optional.of(testSession));
         when(bookingRepository.findBookedBySessionId(sessionId)).thenReturn(List.of());
         when(bookingRepository.findByMemberId(memberId)).thenReturn(List.of(existingBooking));
@@ -165,7 +165,7 @@ class BookingCreationServiceTest {
 
         when(memberStatusGate.loadForTransaction(memberId)).thenReturn(testMember);
         when(creditPort.loadUsableForBooking(memberId)).thenReturn(Optional.of(testMembership));
-        when(creditPort.requireCredit(testMembership.getId())).thenReturn(null);
+        doNothing().when(creditPort).requireCredit(testMembership.getId());
         when(classSessionRepository.findById(sessionId)).thenReturn(Optional.of(testSession));
         when(bookingRepository.findBookedBySessionId(sessionId)).thenReturn(List.of());
         when(bookingRepository.findByMemberId(memberId)).thenReturn(List.of(existingBooking));
@@ -209,7 +209,7 @@ class BookingCreationServiceTest {
 
         when(memberStatusGate.loadForTransaction(memberId)).thenReturn(testMember);
         when(creditPort.loadUsableForBooking(memberId)).thenReturn(Optional.of(testMembership));
-        when(creditPort.requireCredit(testMembership.getId())).thenReturn(null);
+        doNothing().when(creditPort).requireCredit(testMembership.getId());
         when(classSessionRepository.findById(sessionId)).thenReturn(Optional.of(testSession));
         when(bookingRepository.findBookedBySessionId(sessionId)).thenReturn(List.of());
         when(bookingRepository.findByMemberId(memberId)).thenReturn(List.of(existingBooking));
@@ -259,7 +259,7 @@ class BookingCreationServiceTest {
 
         when(memberStatusGate.loadForTransaction(memberId)).thenReturn(testMember);
         when(creditPort.loadUsableForBooking(memberId)).thenReturn(Optional.of(testMembership));
-        when(creditPort.requireCredit(testMembership.getId())).thenReturn(null);
+        doNothing().when(creditPort).requireCredit(testMembership.getId());
         when(classSessionRepository.findById(sessionId)).thenReturn(Optional.of(testSession));
         when(bookingRepository.findBookedBySessionId(sessionId)).thenReturn(List.of());
         when(bookingRepository.findByMemberId(memberId)).thenReturn(List.of(existingBooking));
@@ -301,7 +301,7 @@ class BookingCreationServiceTest {
 
         when(memberStatusGate.loadForTransaction(memberId)).thenReturn(testMember);
         when(creditPort.loadUsableForBooking(memberId)).thenReturn(Optional.of(testMembership));
-        when(creditPort.requireCredit(testMembership.getId())).thenReturn(null);
+        doNothing().when(creditPort).requireCredit(testMembership.getId());
         when(classSessionRepository.findById(sessionId)).thenReturn(Optional.of(testSession));
         when(bookingRepository.findBookedBySessionId(sessionId)).thenReturn(List.of());
         when(bookingRepository.findByMemberId(memberId)).thenReturn(List.of(existingBooking));
@@ -341,7 +341,7 @@ class BookingCreationServiceTest {
 
         when(memberStatusGate.loadForTransaction(memberId)).thenReturn(testMember);
         when(creditPort.loadUsableForBooking(memberId)).thenReturn(Optional.of(testMembership));
-        when(creditPort.requireCredit(testMembership.getId())).thenReturn(null);
+        doNothing().when(creditPort).requireCredit(testMembership.getId());
         when(classSessionRepository.findById(sessionId)).thenReturn(Optional.of(testSession));
         when(bookingRepository.findBookedBySessionId(sessionId)).thenReturn(List.of());
         when(bookingRepository.findByMemberId(memberId)).thenReturn(List.of(existingBooking));
@@ -382,7 +382,7 @@ class BookingCreationServiceTest {
         // Note: findByMemberId only returns bookings for the target member
         when(memberStatusGate.loadForTransaction(memberId)).thenReturn(testMember);
         when(creditPort.loadUsableForBooking(memberId)).thenReturn(Optional.of(testMembership));
-        when(creditPort.requireCredit(testMembership.getId())).thenReturn(null);
+        doNothing().when(creditPort).requireCredit(testMembership.getId());
         when(classSessionRepository.findById(sessionId)).thenReturn(Optional.of(testSession));
         when(bookingRepository.findBookedBySessionId(sessionId)).thenReturn(List.of());
         when(bookingRepository.findByMemberId(memberId)).thenReturn(List.of());
@@ -403,9 +403,7 @@ class BookingCreationServiceTest {
             case MEMBER_INACTIVE:
                 testMember.setStatus("SUSPENDED");
                 when(memberStatusGate.loadForTransaction(memberId)).thenReturn(testMember);
-                when(memberStatusGate.requireActive(testMember)).thenThrow(
-                    new ApiException(ErrorCode.MEMBER_SUSPENDED, "Member is suspended", null)
-                );
+                doThrow(new ApiException(ErrorCode.MEMBER_SUSPENDED, "Member is suspended")).when(memberStatusGate).requireActive(testMember);
                 break;
 
             case MEMBERSHIP_INACTIVE:
@@ -416,9 +414,8 @@ class BookingCreationServiceTest {
             case INSUFFICIENT_CREDITS:
                 when(memberStatusGate.loadForTransaction(memberId)).thenReturn(testMember);
                 when(creditPort.loadUsableForBooking(memberId)).thenReturn(Optional.of(testMembership));
-                when(creditPort.requireCredit(testMembership.getId())).thenThrow(
-                    new ApiException(ErrorCode.CREDITS_INSUFFICIENT, "Insufficient credits", null)
-                );
+                doThrow(new ApiException(ErrorCode.CREDITS_INSUFFICIENT, "Insufficient credits"))
+                    .when(creditPort).requireCredit(testMembership.getId());
                 break;
 
             case BOOKING_OVERLAPS_EXISTING:
@@ -446,7 +443,7 @@ class BookingCreationServiceTest {
 
                 when(memberStatusGate.loadForTransaction(memberId)).thenReturn(testMember);
                 when(creditPort.loadUsableForBooking(memberId)).thenReturn(Optional.of(testMembership));
-                when(creditPort.requireCredit(testMembership.getId())).thenReturn(null);
+                doNothing().when(creditPort).requireCredit(testMembership.getId());
                 when(classSessionRepository.findById(sessionId)).thenReturn(Optional.of(testSession));
                 when(bookingRepository.findBookedBySessionId(sessionId)).thenReturn(List.of());
                 when(bookingRepository.findByMemberId(memberId)).thenReturn(List.of(existingBooking));
@@ -525,7 +522,7 @@ class BookingCreationServiceTest {
 
         when(memberStatusGate.loadForTransaction(memberId)).thenReturn(testMember);
         when(creditPort.loadUsableForBooking(memberId)).thenReturn(Optional.of(testMembership));
-        when(creditPort.requireCredit(testMembership.getId())).thenReturn(null);
+        doNothing().when(creditPort).requireCredit(testMembership.getId());
         when(classSessionRepository.findById(sessionId)).thenReturn(Optional.of(testSession));
         when(bookingRepository.findBookedBySessionId(sessionId)).thenReturn(List.of());
         when(bookingRepository.findByMemberId(memberId)).thenReturn(List.of(existingBooking));

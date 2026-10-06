@@ -8,7 +8,10 @@ import com.tngtech.archunit.junit.ArchTest;
 import com.tngtech.archunit.lang.ArchRule;
 import org.junit.jupiter.api.Test;
 
+import static com.tngtech.archunit.core.domain.properties.HasName.Predicates.nameMatching;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.base.DescribedPredicate.and;
+import static com.tngtech.archunit.core.domain.JavaClass.Predicates.resideInAPackage;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @AnalyzeClasses(
@@ -34,9 +37,8 @@ class MemberStatusGateArchTest {
     @ArchTest
     static final ArchRule ac5_booking_must_not_reference_member_service =
             noClasses().that().resideInAPackage("..booking..")
-                    .should().dependOnClassesThat()
-                    .resideInAPackage("..member.application..")
-                    .and().haveNameMatching(".*Service")
+                    .should().dependOnClassesThat(
+                            resideInAPackage("..member.application..").and(nameMatching(".*Service")))
                     .as("Booking module must not directly reference member services (use MemberStatusGate instead)");
 
     @Test

@@ -94,7 +94,6 @@ class MembershipAssignmentConcurrencyTest {
         AtomicInteger otherErrorCount = new AtomicInteger(0);
 
         AssignMembershipRequest request = new AssignMembershipRequest(
-            memberId,
             planId,
             null
         );

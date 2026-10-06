@@ -73,13 +73,13 @@ class GlobalExceptionHandlerTest {
         @PostMapping("/api-exception")
         String apiException(@RequestBody Map<String, String> body) {
             String type = body.get("type");
-            return switch (type) {
-                case "notFound"     -> { throw ApiException.notFound("Member not found"); }
-                case "conflict"     -> { throw ApiException.conflict("Session is full"); }
-                case "notPermitted" -> { throw ApiException.notPermitted("Member suspended"); }
-                case "concurrent"   -> { throw ApiException.concurrentModification("Stale data"); }
-                default             -> { throw ApiException.notFound("Unknown"); }
-            };
+            switch (type) {
+                case "notFound"     -> throw ApiException.notFound("Member not found");
+                case "conflict"     -> throw ApiException.conflict("Session is full");
+                case "notPermitted" -> throw ApiException.notPermitted("Member suspended");
+                case "concurrent"   -> throw ApiException.concurrentModification("Stale data");
+                default             -> throw ApiException.notFound("Unknown");
+            }
         }
 
         @PostMapping("/db-constraint")

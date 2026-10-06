@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
-import java.time.DayOfWeek as JavaDayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -213,7 +212,7 @@ public class RecurringSessionGenerator {
         List<LocalDateTime> occurrences = new ArrayList<>();
         LocalDate current = fromDate;
 
-        Set<JavaDayOfWeek> targetDays = daysOfWeek.stream()
+        Set<java.time.DayOfWeek> targetDays = daysOfWeek.stream()
                 .map(DayOfWeek::toJavaTime)
                 .collect(Collectors.toSet());
 

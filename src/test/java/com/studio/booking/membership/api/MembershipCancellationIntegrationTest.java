@@ -237,7 +237,6 @@ class MembershipCancellationIntegrationTest {
 
         // Now assign a new membership (this should not fail with MEMBERSHIP_ALREADY_QUEUED)
         AssignMembershipRequest request = new AssignMembershipRequest(
-            memberId,
             planId,
             now.plus(20, ChronoUnit.DAYS)
         );
@@ -284,6 +283,6 @@ class MembershipCancellationIntegrationTest {
         Membership reread = membershipRepository.findById(saved.getId()).orElseThrow();
 
         assertThat(reread.getVersion()).isGreaterThan(versionBefore);
-        assertThat(reread.getUpdatedAt()).isGreaterThanOrEqualTo(updatedAtBefore);
+        assertThat(reread.getUpdatedAt()).isAfterOrEqualTo(updatedAtBefore);
     }
 }

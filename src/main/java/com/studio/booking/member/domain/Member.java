@@ -51,6 +51,10 @@ public class Member {
 
     protected Member() {}
 
+    public Member(String email, String fullName, String phone) {
+        this(email, fullName, phone, "ACTIVE", Clock.systemUTC());
+    }
+
     public Member(String email, String fullName, String phone, String status, Clock clock) {
         this.email = email;
         this.fullName = fullName;
@@ -77,6 +81,7 @@ public class Member {
     public void setEmail(String email) { this.email = email; }
     public void setFullName(String fullName) { this.fullName = fullName; }
     public void setPhone(String phone) { this.phone = phone; }
+    public void setStatus(String status) { this.status = status; }
 
     public void suspendStatus(String reason, Clock clock) {
         this.status = "SUSPENDED";

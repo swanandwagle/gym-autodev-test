@@ -60,8 +60,7 @@ public class BookingService {
         ClassSession session = classSessionRepository.findByIdWithLock(sessionId)
             .orElseThrow(() -> new ApiException(
                 ErrorCode.SESSION_NOT_FOUND,
-                "No class session found with the given identifier",
-                null
+                "No class session found with the given identifier"
             ));
 
         // Check eligibility using shared service (acquires member lock inside, includes overlap check)
@@ -70,15 +69,13 @@ public class BookingService {
             if (eligibility.getSkipReason() == BookingCreationService.SkipReason.BOOKING_OVERLAPS_EXISTING) {
                 throw new ApiException(
                     ErrorCode.BOOKING_OVERLAPS_EXISTING,
-                    "Member has a booking that overlaps with this session",
-                    null
+                    "Member has a booking that overlaps with this session"
                 );
             }
             // For other skip reasons, throw appropriate error
             throw new ApiException(
                 eligibility.getErrorCode(),
-                "Booking eligibility check failed",
-                null
+                "Booking eligibility check failed"
             );
         }
 
@@ -86,8 +83,7 @@ public class BookingService {
         if ("CANCELLED".equals(session.getStatus())) {
             throw new ApiException(
                 ErrorCode.SESSION_CANCELLED,
-                "The session has been cancelled and cannot be booked",
-                null
+                "The session has been cancelled and cannot be booked"
             );
         }
 
@@ -96,8 +92,7 @@ public class BookingService {
         if (now.isAfter(session.getStartsAt())) {
             throw new ApiException(
                 ErrorCode.SESSION_NOT_BOOKABLE,
-                "The session is not open for booking",
-                null
+                "The session is not open for booking"
             );
         }
 
@@ -105,8 +100,7 @@ public class BookingService {
         if (session.getBookedCount() >= session.getCapacity()) {
             throw new ApiException(
                 ErrorCode.SESSION_FULL,
-                "The session has no remaining capacity",
-                null
+                "The session has no remaining capacity"
             );
         }
 
@@ -115,8 +109,7 @@ public class BookingService {
         if (membershipOpt.isEmpty()) {
             throw new ApiException(
                 ErrorCode.MEMBER_INACTIVE,
-                "The member account is inactive and cannot perform this action",
-                null
+                "The member account is inactive and cannot perform this action"
             );
         }
         Membership membership = membershipOpt.get();
@@ -137,7 +130,6 @@ public class BookingService {
 
         // Increment booked count (must be atomic with booking and credit)
         session.setBookedCount(session.getBookedCount() + 1);
-        session.setUpdatedAt(Instant.now(clock));
         classSessionRepository.save(session);
 
         // Write notification log (must be atomic)

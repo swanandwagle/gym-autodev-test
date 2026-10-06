@@ -170,8 +170,7 @@ public class MembershipController {
         if (sort != null) {
             throw new ApiException(
                 ErrorCode.INVALID_SORT_FIELD,
-                "The sort parameter is not supported for this endpoint",
-                null
+                "The sort parameter is not supported for this endpoint"
             );
         }
 

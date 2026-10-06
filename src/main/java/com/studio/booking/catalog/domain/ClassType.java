@@ -44,6 +44,10 @@ public class ClassType {
 
     protected ClassType() {}
 
+    public ClassType(String name) {
+        this(name, null, 60, 20);
+    }
+
     public ClassType(String name, String description, int durationMinutes, int defaultCapacity) {
         this.name = name;
         this.description = description;

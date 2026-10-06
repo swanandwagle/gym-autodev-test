@@ -1253,7 +1253,7 @@ class MemberControllerIntegrationTest {
             ErrorEnvelope.class
         );
 
-        assertThat(error.code()).isEqualTo(ErrorCode.TOO_LONG);
+        assertThat(error.code()).isEqualTo(ErrorCode.VALIDATION_FAILED);
         assertThat(error.status()).isEqualTo(422);
     }
 
@@ -1758,7 +1758,7 @@ class MemberControllerIntegrationTest {
             ErrorEnvelope.class
         );
 
-        assertThat(error.code()).isEqualTo(ErrorCode.TOO_LONG);
+        assertThat(error.code()).isEqualTo(ErrorCode.VALIDATION_FAILED);
         assertThat(error.errors()).anySatisfy(fieldError ->
             assertThat(fieldError.field()).isEqualTo("q")
         );

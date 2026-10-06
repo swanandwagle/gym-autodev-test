@@ -77,6 +77,12 @@ public class Booking {
         this.updatedAt = now;
     }
 
+    public Booking(UUID memberId, UUID sessionId, String source) {
+        this(memberId, sessionId, source, Clock.systemUTC());
+    }
+
+    public void setId(UUID id) { this.id = id; }
+    public void setMemberId(UUID memberId) { this.memberId = memberId; }
     public void setSessionId(UUID sessionId) { this.sessionId = sessionId; }
 
     public UUID getId() { return id; }

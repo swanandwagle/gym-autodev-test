@@ -16,11 +16,11 @@ import java.util.UUID;
  * MemberStatusGateService in the application package.
  */
 @Component
-class MemberStatusGateImpl implements MemberStatusGate {
+public class MemberStatusGateImpl implements MemberStatusGate {
 
     private final MemberRepository memberRepository;
 
-    MemberStatusGateImpl(MemberRepository memberRepository) {
+    public MemberStatusGateImpl(MemberRepository memberRepository) {
         this.memberRepository = memberRepository;
     }
 

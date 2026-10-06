@@ -25,7 +25,7 @@ public class CorrelationFilter extends OncePerRequestFilter {
 
     public static final String TRACE_ID_HEADER = "X-Request-Id";
     public static final String MDC_TRACE_KEY = "traceId";
-    static final String REQUEST_ATTR = "com.studio.booking.traceId";
+    public static final String REQUEST_ATTR = "com.studio.booking.traceId";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,

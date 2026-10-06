@@ -100,15 +100,14 @@ public class BookingCreationService {
         ClassSession session = classSessionRepository.findById(sessionId)
             .orElseThrow(() -> new ApiException(
                 ErrorCode.SESSION_NOT_FOUND,
-                "No class session found with the given identifier",
-                null
+                "No class session found with the given identifier"
             ));
 
         // Check 4: Member must not have an existing non-cancelled booking on this session
         boolean existingNonCancelledBooking = bookingRepository.findBookedBySessionId(sessionId).stream()
             .anyMatch(b -> b.getMemberId().equals(memberId) && !"CANCELLED".equals(b.getStatus()));
         if (existingNonCancelledBooking) {
-            return EligibilityResult.skipped(SkipReason.DUPLICATE_BOOKING, ErrorCode.DUPLICATE_BOOKING);
+            return EligibilityResult.skipped(SkipReason.BOOKING_OVERLAPS_EXISTING, ErrorCode.DUPLICATE_BOOKING);
         }
 
         // Check 5: Member must not have an overlapping BOOKED booking

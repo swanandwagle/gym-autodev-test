@@ -9,6 +9,7 @@ import com.studio.booking.shared.error.ApiException;
 import com.studio.booking.shared.error.ErrorCode;
 import com.studio.booking.shared.error.ErrorEnvelope;
 import com.studio.booking.shared.idempotency.IdempotencyRecord;
+import com.studio.booking.shared.idempotency.IdempotencyResult;
 import com.studio.booking.shared.idempotency.IdempotencyService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;

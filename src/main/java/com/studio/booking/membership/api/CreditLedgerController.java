@@ -72,8 +72,7 @@ public class CreditLedgerController {
         Membership membership = membershipRepository.findById(membershipId)
             .orElseThrow(() -> new ApiException(
                 ErrorCode.MEMBERSHIP_NOT_FOUND,
-                "No membership exists for the given ID",
-                null
+                "No membership exists for the given ID"
             ));
 
         // For unlimited memberships, return empty ledger with null credit figures

@@ -510,11 +510,11 @@ class CreditPortIntegrationTest {
 
         if (hasError1) {
             assertThat(thread1Exception.get()).isInstanceOf(ApiException.class);
-            assertThat(((ApiException) thread1Exception.get()).getCode()).isEqualTo(ErrorCode.MEMBERSHIP_NO_CREDITS);
+            assertThat(((ApiException) thread1Exception.get()).getErrorCode()).isEqualTo(ErrorCode.MEMBERSHIP_NO_CREDITS);
         }
         if (hasError2) {
             assertThat(thread2Exception.get()).isInstanceOf(ApiException.class);
-            assertThat(((ApiException) thread2Exception.get()).getCode()).isEqualTo(ErrorCode.MEMBERSHIP_NO_CREDITS);
+            assertThat(((ApiException) thread2Exception.get()).getErrorCode()).isEqualTo(ErrorCode.MEMBERSHIP_NO_CREDITS);
         }
 
         // Final state: 0 credits, 1 ledger row
