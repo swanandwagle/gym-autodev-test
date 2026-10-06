@@ -43,6 +43,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import com.studio.booking.booking.domain.WaitlistEntry;
 import com.studio.booking.booking.infrastructure.WaitlistEntryRepository;
+import com.studio.booking.catalog.application.TestClockConfig;
 import com.studio.booking.shared.notification.NotificationLogRepository;
 
 @SpringBootTest
@@ -285,7 +286,7 @@ class ClassSessionControllerIntegrationTest {
     @Test
     void test_ac7_non_utc_offset_accepted_and_returned_as_utc() throws Exception {
         Instant futureTime = now.plusSeconds(3600);
-        OffsetDateTime offsetTime = OffsetDateTime.ofInstant(futureTime, ZoneOffset.ofHours(5, 30));
+        OffsetDateTime offsetTime = OffsetDateTime.ofInstant(futureTime, ZoneOffset.ofHoursMinutes(5, 30));
 
         String json = """
                 {
@@ -1251,9 +1252,10 @@ class ClassSessionControllerIntegrationTest {
         assertThat(response).contains("\"promotedCount\":5");
 
         // Verify 5 entries are PROMOTED and 3 remain WAITING
+        UUID savedId = saved.getId();
         var allEntries = waitlistEntryRepository.findAll();
         var promotedEntries = allEntries.stream()
-                .filter(e -> e.getSessionId().equals(saved.getId()) && "PROMOTED".equals(e.getStatus()))
+                .filter(e -> e.getSessionId().equals(savedId) && "PROMOTED".equals(e.getStatus()))
                 .count();
         assertThat(promotedEntries).isEqualTo(5);
     }

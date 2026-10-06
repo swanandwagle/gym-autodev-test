@@ -644,7 +644,7 @@ class BrowseSessionsControllerIntegrationTest {
 
         assertThat(response.content()).hasSize(20);
         // Should execute exactly 2 queries: one for sessions, one for waitlist counts
-        long queryCount = stats.getPreparedStatementCount();
+        long queryCount = stats.getPrepareStatementCount();
         assertThat(queryCount).isLessThanOrEqualTo(3);
     }
 

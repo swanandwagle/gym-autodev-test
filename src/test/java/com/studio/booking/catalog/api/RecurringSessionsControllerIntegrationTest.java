@@ -40,6 +40,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import com.studio.booking.catalog.application.TestClockConfig;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -664,11 +666,12 @@ class RecurringSessionsControllerIntegrationTest {
 
         var listType = objectMapper.getTypeFactory()
                 .constructCollectionType(List.class, com.studio.booking.catalog.api.response.ClassSessionScheduleResponse.class);
-        var sessions = objectMapper.readValue(getResult.getResponse().getContentAsString(), listType);
+        List<com.studio.booking.catalog.api.response.ClassSessionScheduleResponse> sessions =
+                objectMapper.readValue(getResult.getResponse().getContentAsString(), listType);
 
         assertThat(sessions).hasSize(6);
         for (int i = 1; i < sessions.size(); i++) {
-            assertThat(sessions.get(i).startsAt()).isGreaterThan(sessions.get(i - 1).startsAt());
+            assertThat(sessions.get(i).startsAt()).isAfter(sessions.get(i - 1).startsAt());
         }
     }
 
@@ -709,7 +712,8 @@ class RecurringSessionsControllerIntegrationTest {
 
         var listType = objectMapper.getTypeFactory()
                 .constructCollectionType(List.class, com.studio.booking.catalog.api.response.ClassSessionScheduleResponse.class);
-        var sessions = objectMapper.readValue(getResult.getResponse().getContentAsString(), listType);
+        List<com.studio.booking.catalog.api.response.ClassSessionScheduleResponse> sessions =
+                objectMapper.readValue(getResult.getResponse().getContentAsString(), listType);
 
         assertThat(sessions).hasSizeGreaterThanOrEqualTo(1);
         boolean hasCancelled = sessions.stream().anyMatch(s -> s.status().equals("CANCELLED"));

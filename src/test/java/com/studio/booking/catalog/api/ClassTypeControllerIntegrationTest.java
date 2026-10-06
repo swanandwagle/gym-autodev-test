@@ -209,22 +209,21 @@ class ClassTypeControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        PageResponse<?> page = objectMapper.readValue(
+        PageResponse<ClassTypeResponse> page = objectMapper.readValue(
                 listResult.getResponse().getContentAsString(),
-                PageResponse.class
+                objectMapper.getTypeFactory().constructParametricType(PageResponse.class, ClassTypeResponse.class)
         );
 
         // Should only contain active class types — verify our active one is present and the deactivated one is not
         assertThat(page.content()).isNotNull();
         List<ClassTypeResponse> activeItems = page.content().stream()
-                .filter(item -> item instanceof ClassTypeResponse ct && ct.active())
-                .map(item -> (ClassTypeResponse) item)
+                .filter(ClassTypeResponse::active)
                 .toList();
         assertThat(activeItems).extracting(ClassTypeResponse::id)
                 .contains(activeClass.id(), classTypeId);
 
         List<ClassTypeResponse> deactivatedItems = page.content().stream()
-                .filter(item -> item instanceof ClassTypeResponse ct && !ct.active())
+                .filter(item -> !item.active())
                 .toList();
         assertThat(deactivatedItems).isEmpty();
     }

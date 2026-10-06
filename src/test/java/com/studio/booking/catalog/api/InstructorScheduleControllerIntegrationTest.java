@@ -509,7 +509,7 @@ class InstructorScheduleControllerIntegrationTest {
 
         assertThat(page.content()).hasSize(20);
 
-        long queryCount = stats.getPreparedStatementCount();
+        long queryCount = stats.getPrepareStatementCount();
         assertThat(queryCount).isLessThanOrEqualTo(10);
     }
 

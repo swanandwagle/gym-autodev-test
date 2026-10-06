@@ -51,4 +51,8 @@ public record PageResponse<T>(
                 )
         );
     }
+
+    public static <T> PageResponse<T> from(org.springframework.data.domain.Page<T> springPage) {
+        return of(springPage);
+    }
 }

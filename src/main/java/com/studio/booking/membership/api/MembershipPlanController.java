@@ -260,16 +260,14 @@ public class MembershipPlanController {
         if (request.version() == null) {
             throw new ApiException(
                 ErrorCode.VALIDATION_FAILED,
-                "version field is required",
-                null
+                "version field is required"
             );
         }
 
         if (!request.hasName() && !request.hasClassCredits()) {
             throw new ApiException(
                 ErrorCode.VALIDATION_FAILED,
-                "Request body must contain at least one field to update (name or classCredits) in addition to version",
-                null
+                "Request body must contain at least one field to update (name or classCredits) in addition to version"
             );
         }
 

@@ -84,6 +84,25 @@ public class Membership {
         this.updatedAt = now;
     }
 
+    public Membership(UUID memberId, UUID planId, Integer creditsRemaining) {
+        this(memberId, planId, creditsRemaining, Clock.systemUTC());
+    }
+
+    public Membership(UUID memberId, UUID planId, String status, boolean unlimited,
+                      Integer creditsInitial, Integer creditsRemaining, Instant startsAt, Instant expiresAt) {
+        this.memberId = memberId;
+        this.planId = planId;
+        this.status = status;
+        this.unlimited = unlimited;
+        this.creditsInitial = creditsInitial;
+        this.creditsRemaining = creditsRemaining;
+        this.startsAt = startsAt;
+        this.expiresAt = expiresAt;
+        Instant now = Instant.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
     public UUID getId() { return id; }
     public UUID getMemberId() { return memberId; }
     public UUID getPlanId() { return planId; }

@@ -47,15 +47,13 @@ public class CreditPortImpl implements CreditPort {
         Membership membership = membershipRepository.findById(membershipId)
             .orElseThrow(() -> new ApiException(
                 ErrorCode.MEMBERSHIP_NOT_FOUND,
-                "No membership exists for the given ID",
-                null
+                "No membership exists for the given ID"
             ));
 
         if (!membership.isUnlimited() && membership.getCreditsRemaining() <= 0) {
             throw new ApiException(
                 ErrorCode.MEMBERSHIP_NO_CREDITS,
-                "The membership has no remaining credits",
-                null
+                "The membership has no remaining credits"
             );
         }
     }
@@ -82,8 +80,7 @@ public class CreditPortImpl implements CreditPort {
         Membership membership = membershipRepository.findByIdWithLock(membershipId)
             .orElseThrow(() -> new ApiException(
                 ErrorCode.MEMBERSHIP_NOT_FOUND,
-                "No membership exists for the given ID",
-                null
+                "No membership exists for the given ID"
             ));
 
         if (membership.isUnlimited()) {
@@ -94,8 +91,7 @@ public class CreditPortImpl implements CreditPort {
         if (currentBalance <= 0) {
             throw new ApiException(
                 ErrorCode.MEMBERSHIP_NO_CREDITS,
-                "The membership has no remaining credits",
-                null
+                "The membership has no remaining credits"
             );
         }
 
@@ -120,8 +116,7 @@ public class CreditPortImpl implements CreditPort {
         Membership membership = membershipRepository.findByIdWithLock(membershipId)
             .orElseThrow(() -> new ApiException(
                 ErrorCode.MEMBERSHIP_NOT_FOUND,
-                "No membership exists for the given ID",
-                null
+                "No membership exists for the given ID"
             ));
 
         if (membership.isUnlimited()) {
@@ -142,5 +137,13 @@ public class CreditPortImpl implements CreditPort {
             Instant.now(clock)
         );
         creditTransactionRepository.save(transaction);
+    }
+
+    @Override
+    public boolean isUnlimited(UUID membershipId) {
+        return membershipRepository.findByIdWithLock(membershipId)
+            .orElseThrow(() -> new ApiException(ErrorCode.MEMBERSHIP_NOT_FOUND,
+                "No membership exists for the given ID"))
+            .isUnlimited();
     }
 }

@@ -106,6 +106,7 @@ public class ClassSession {
     public Instant getUpdatedAt() { return updatedAt; }
     public long getVersion() { return version; }
 
+    public void setId(UUID id) { this.id = id; }
     public void setStatus(String status) { this.status = status; }
     public void setBookedCount(int bookedCount) { this.bookedCount = bookedCount; }
     public void setCancelledAt(Instant cancelledAt) { this.cancelledAt = cancelledAt; }

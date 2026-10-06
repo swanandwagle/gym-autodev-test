@@ -91,7 +91,6 @@ class MembershipAssignmentIntegrationTest {
         Instant beforeCall = Instant.now(clock);
 
         AssignMembershipRequest request = new AssignMembershipRequest(
-            memberId,
             planId,
             null
         );
@@ -111,7 +110,7 @@ class MembershipAssignmentIntegrationTest {
         Instant afterCall = Instant.now(clock);
 
         assertThat(response.status()).isEqualTo("ACTIVE");
-        assertThat(response.startsAt()).isGreaterThanOrEqualTo(beforeCall).isLessThanOrEqualTo(afterCall);
+        assertThat(response.startsAt()).isAfterOrEqualTo(beforeCall).isBeforeOrEqualTo(afterCall);
         assertThat(response.unlimited()).isFalse();
         assertThat(response.creditsInitial()).isEqualTo(10);
         assertThat(response.creditsRemaining()).isEqualTo(10);
@@ -122,7 +121,6 @@ class MembershipAssignmentIntegrationTest {
         Instant futureStart = Instant.now(clock).plus(1, ChronoUnit.HOURS);
 
         AssignMembershipRequest request = new AssignMembershipRequest(
-            memberId,
             planId,
             futureStart
         );
@@ -162,7 +160,6 @@ class MembershipAssignmentIntegrationTest {
         membershipRepository.save(active);
 
         AssignMembershipRequest request = new AssignMembershipRequest(
-            memberId,
             planId,
             null
         );
@@ -202,7 +199,6 @@ class MembershipAssignmentIntegrationTest {
         membershipRepository.save(active);
 
         AssignMembershipRequest request = new AssignMembershipRequest(
-            memberId,
             planId,
             activeExpiry
         );
@@ -243,7 +239,6 @@ class MembershipAssignmentIntegrationTest {
         membershipRepository.save(active);
 
         AssignMembershipRequest request = new AssignMembershipRequest(
-            memberId,
             planId,
             oneSecondBefore
         );
@@ -296,7 +291,6 @@ class MembershipAssignmentIntegrationTest {
         membershipRepository.save(pending);
 
         AssignMembershipRequest request = new AssignMembershipRequest(
-            memberId,
             planId,
             pendingStart.plus(31, ChronoUnit.DAYS)
         );
@@ -323,7 +317,6 @@ class MembershipAssignmentIntegrationTest {
         planRepository.save(plan);
 
         AssignMembershipRequest request = new AssignMembershipRequest(
-            memberId,
             planId,
             null
         );
@@ -356,7 +349,6 @@ class MembershipAssignmentIntegrationTest {
         MembershipPlan savedPlan = planRepository.save(unlimitedPlan);
 
         AssignMembershipRequest request = new AssignMembershipRequest(
-            memberId,
             savedPlan.getId(),
             null
         );
@@ -380,7 +372,6 @@ class MembershipAssignmentIntegrationTest {
     @Test
     void test_ac9_credit_plan_produces_credits_equal_plan_credits() throws Exception {
         AssignMembershipRequest request = new AssignMembershipRequest(
-            memberId,
             planId,
             null
         );
@@ -409,7 +400,6 @@ class MembershipAssignmentIntegrationTest {
         memberRepository.save(member);
 
         AssignMembershipRequest request = new AssignMembershipRequest(
-            memberId,
             planId,
             null
         );
@@ -433,7 +423,6 @@ class MembershipAssignmentIntegrationTest {
         Instant sixMinutesAgo = Instant.now(clock).minusSeconds(360);
 
         AssignMembershipRequest request = new AssignMembershipRequest(
-            memberId,
             planId,
             sixMinutesAgo
         );
@@ -457,7 +446,6 @@ class MembershipAssignmentIntegrationTest {
         Instant fourMinutesAgo = Instant.now(clock).minusSeconds(240);
 
         AssignMembershipRequest request = new AssignMembershipRequest(
-            memberId,
             planId,
             fourMinutesAgo
         );
@@ -481,7 +469,6 @@ class MembershipAssignmentIntegrationTest {
         UUID unknownMemberId = UUID.randomUUID();
 
         AssignMembershipRequest request = new AssignMembershipRequest(
-            unknownMemberId,
             planId,
             null
         );
@@ -505,7 +492,6 @@ class MembershipAssignmentIntegrationTest {
         UUID unknownPlanId = UUID.randomUUID();
 
         AssignMembershipRequest request = new AssignMembershipRequest(
-            memberId,
             unknownPlanId,
             null
         );

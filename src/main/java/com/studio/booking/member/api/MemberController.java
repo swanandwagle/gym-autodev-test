@@ -86,7 +86,7 @@ public class MemberController {
 
         if (q != null && q.length() > 100) {
             throw new ApiException(
-                ErrorCode.TOO_LONG,
+                ErrorCode.VALIDATION_FAILED,
                 "Search query exceeds maximum length of 100 characters",
                 List.of(
                     FieldError.of(
@@ -322,7 +322,7 @@ public class MemberController {
             reason = request.reason();
             if (reason.length() > 255) {
                 throw new ApiException(
-                    ErrorCode.TOO_LONG,
+                    ErrorCode.VALIDATION_FAILED,
                     "Suspension reason exceeds maximum length of 255 characters",
                     List.of(
                         FieldError.of(

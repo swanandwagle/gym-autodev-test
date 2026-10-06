@@ -52,6 +52,10 @@ public class MembershipPlan {
 
     protected MembershipPlan() {}
 
+    public MembershipPlan(String name, String description, Integer durationDays, String tier) {
+        this(name, null, durationDays != null ? durationDays : 30, java.math.BigDecimal.ZERO, "USD", tier);
+    }
+
     public MembershipPlan(String name, Integer classCredits, int durationDays,
                           BigDecimal price, String currency, String tier) {
         this.name = name;

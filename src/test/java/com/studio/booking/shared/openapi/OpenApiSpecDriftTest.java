@@ -49,20 +49,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.MOCK,
-        excludeAutoConfiguration = {
-                DataSourceAutoConfiguration.class,
-                DataSourceTransactionManagerAutoConfiguration.class,
-                HibernateJpaAutoConfiguration.class,
-                FlywayAutoConfiguration.class,
-                JpaRepositoriesAutoConfiguration.class
+        properties = {
+                "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration," +
+                        "org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration," +
+                        "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration," +
+                        "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration," +
+                        "org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration",
+                "studio.api.base-url=https://api.studio.example",
+                "spring.flyway.enabled=false",
+                "spring.jpa.hibernate.ddl-auto=none"
         }
 )
 @AutoConfigureMockMvc
-@TestPropertySource(properties = {
-        "studio.api.base-url=https://api.studio.example",
-        "spring.flyway.enabled=false",
-        "spring.jpa.hibernate.ddl-auto=none"
-})
 class OpenApiSpecDriftTest {
 
     private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());

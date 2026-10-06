@@ -20,6 +20,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.time.Instant;
 import java.util.List;
+import java.time.Duration;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -59,8 +60,7 @@ public class BookingService {
         ClassSession session = classSessionRepository.findByIdWithLock(sessionId)
             .orElseThrow(() -> new ApiException(
                 ErrorCode.SESSION_NOT_FOUND,
-                "No class session found with the given identifier",
-                null
+                "No class session found with the given identifier"
             ));
 
         // Check eligibility using shared service (acquires member lock inside, includes overlap check)
@@ -69,15 +69,13 @@ public class BookingService {
             if (eligibility.getSkipReason() == BookingCreationService.SkipReason.BOOKING_OVERLAPS_EXISTING) {
                 throw new ApiException(
                     ErrorCode.BOOKING_OVERLAPS_EXISTING,
-                    "Member has a booking that overlaps with this session",
-                    null
+                    "Member has a booking that overlaps with this session"
                 );
             }
             // For other skip reasons, throw appropriate error
             throw new ApiException(
                 eligibility.getErrorCode(),
-                "Booking eligibility check failed",
-                null
+                "Booking eligibility check failed"
             );
         }
 
@@ -85,8 +83,7 @@ public class BookingService {
         if ("CANCELLED".equals(session.getStatus())) {
             throw new ApiException(
                 ErrorCode.SESSION_CANCELLED,
-                "The session has been cancelled and cannot be booked",
-                null
+                "The session has been cancelled and cannot be booked"
             );
         }
 
@@ -95,8 +92,7 @@ public class BookingService {
         if (now.isAfter(session.getStartsAt())) {
             throw new ApiException(
                 ErrorCode.SESSION_NOT_BOOKABLE,
-                "The session is not open for booking",
-                null
+                "The session is not open for booking"
             );
         }
 
@@ -104,8 +100,7 @@ public class BookingService {
         if (session.getBookedCount() >= session.getCapacity()) {
             throw new ApiException(
                 ErrorCode.SESSION_FULL,
-                "The session has no remaining capacity",
-                null
+                "The session has no remaining capacity"
             );
         }
 
@@ -114,8 +109,7 @@ public class BookingService {
         if (membershipOpt.isEmpty()) {
             throw new ApiException(
                 ErrorCode.MEMBER_INACTIVE,
-                "The member account is inactive and cannot perform this action",
-                null
+                "The member account is inactive and cannot perform this action"
             );
         }
         Membership membership = membershipOpt.get();
@@ -136,7 +130,6 @@ public class BookingService {
 
         // Increment booked count (must be atomic with booking and credit)
         session.setBookedCount(session.getBookedCount() + 1);
-        session.setUpdatedAt(Instant.now(clock));
         classSessionRepository.save(session);
 
         // Write notification log (must be atomic)
@@ -157,6 +150,41 @@ public class BookingService {
         return bookingRepository.findDetailById(bookingId).orElseThrow(() ->
             new ApiException(ErrorCode.BOOKING_NOT_FOUND, "No booking found with the given identifier"));
     }
+
+    @Transactional
+    public BookingCancellationResult cancelBooking(UUID bookingId) {
+        Booking initial = bookingRepository.findById(bookingId).orElseThrow(() ->
+            new ApiException(ErrorCode.BOOKING_NOT_FOUND, "No booking found with the given identifier"));
+        ClassSession session = classSessionRepository.findByIdWithLock(initial.getSessionId()).orElseThrow(() ->
+            new ApiException(ErrorCode.SESSION_NOT_FOUND, "No class session found with the given identifier"));
+        Booking booking = bookingRepository.findByIdWithLock(bookingId).orElseThrow(() ->
+            new ApiException(ErrorCode.BOOKING_NOT_FOUND, "No booking found with the given identifier"));
+        Instant now = Instant.now(clock);
+        if (!"BOOKED".equals(booking.getStatus())) {
+            throw new ApiException(ErrorCode.BOOKING_NOT_CANCELLABLE,
+                "Booking status " + booking.getStatus() + " cannot be cancelled");
+        }
+        if (!now.isBefore(session.getStartsAt())) {
+            throw new ApiException(ErrorCode.SESSION_ALREADY_STARTED, "The session has already started");
+        }
+        boolean standard = Duration.between(now, session.getStartsAt()).compareTo(Duration.ofHours(4)) >= 0;
+        boolean unlimited = creditPort.isUnlimited(booking.getMembershipId());
+        boolean refunded = standard && !unlimited;
+        if (refunded) creditPort.refund(booking.getMembershipId(), "CANCEL_REFUND");
+        booking.setStatus("CANCELLED");
+        booking.setCancellationType(standard ? "STANDARD" : "LATE");
+        booking.setCreditRefunded(refunded);
+        booking.setCancelledAt(now);
+        bookingRepository.save(booking);
+        session.setBookedCount(Math.max(0, session.getBookedCount() - 1));
+        classSessionRepository.save(session);
+        notificationLogRepository.save(new NotificationLog(booking.getMemberId(), "BOOKING_CANCELLED", "LOG",
+            "{\"bookingId\":\"" + bookingId + "\",\"sessionId\":\"" + session.getId() + "\"}", "SYSTEM", clock));
+        return new BookingCancellationResult(bookingId, now, standard ? "STANDARD" : "LATE", refunded, null);
+    }
+
+    public record BookingCancellationResult(UUID bookingId, Instant cancelledAt, String cancellationType,
+                                            boolean creditRefunded, UUID promotedWaitlistEntryId) {}
 
     @Transactional(readOnly = true)
     public Page<BookingRepository.BookingDetail> getMemberHistory(UUID memberId, List<String> statuses,

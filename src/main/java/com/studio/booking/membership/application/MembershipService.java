@@ -51,8 +51,7 @@ public class MembershipService {
         memberRepository.findById(memberId)
             .orElseThrow(() -> new ApiException(
                 ErrorCode.MEMBER_NOT_FOUND,
-                "No member exists for the given ID",
-                null
+                "No member exists for the given ID"
             ));
 
         // Verify plan exists and is active
@@ -60,15 +59,13 @@ public class MembershipService {
         MembershipPlan plan = planRepository.findById(planId)
             .orElseThrow(() -> new ApiException(
                 ErrorCode.MEMBERSHIP_PLAN_NOT_FOUND,
-                "No membership plan exists for the given ID",
-                null
+                "No membership plan exists for the given ID"
             ));
 
         if (!plan.isActive()) {
             throw new ApiException(
                 ErrorCode.PLAN_INACTIVE,
-                "The membership plan is inactive; this operation requires an active plan",
-                null
+                "The membership plan is inactive; this operation requires an active plan"
             );
         }
 
@@ -83,8 +80,7 @@ public class MembershipService {
         if (activeMembership.isPresent() && pendingMembership.isPresent()) {
             throw new ApiException(
                 ErrorCode.MEMBERSHIP_ALREADY_QUEUED,
-                "A member already has one ACTIVE and one PENDING membership; cannot queue a third",
-                null
+                "A member already has one ACTIVE and one PENDING membership; cannot queue a third"
             );
         }
 
@@ -96,8 +92,7 @@ public class MembershipService {
             if (timeSincePast.toMinutes() > 5) {
                 throw new ApiException(
                     ErrorCode.OUT_OF_RANGE,
-                    "startsAt must not be more than 5 minutes in the past",
-                    null
+                    "startsAt must not be more than 5 minutes in the past"
                 );
             }
             actualStartsAt = requestedStartsAt;
@@ -108,8 +103,7 @@ public class MembershipService {
                 if (actualStartsAt.isBefore(activeExpiry)) {
                     throw new ApiException(
                         ErrorCode.MEMBERSHIP_START_BEFORE_CURRENT_EXPIRY,
-                        "The requested startsAt is before the current active membership's expiresAt",
-                        null
+                        "The requested startsAt is before the current active membership's expiresAt"
                     );
                 }
             }
@@ -158,8 +152,7 @@ public class MembershipService {
         return membershipRepository.findById(membershipId)
             .orElseThrow(() -> new ApiException(
                 ErrorCode.MEMBERSHIP_NOT_FOUND,
-                "No membership exists for the given ID",
-                null
+                "No membership exists for the given ID"
             ));
     }
 
@@ -168,8 +161,7 @@ public class MembershipService {
         memberRepository.findById(memberId)
             .orElseThrow(() -> new ApiException(
                 ErrorCode.MEMBER_NOT_FOUND,
-                "No member exists for the given ID",
-                null
+                "No member exists for the given ID"
             ));
 
         if (statusFilter != null && !statusFilter.isEmpty()) {
@@ -184,15 +176,13 @@ public class MembershipService {
         Membership membership = membershipRepository.findById(membershipId)
             .orElseThrow(() -> new ApiException(
                 ErrorCode.MEMBERSHIP_NOT_FOUND,
-                "No membership exists for the given ID",
-                null
+                "No membership exists for the given ID"
             ));
 
         if (!"PENDING".equals(membership.getStatus())) {
             throw new ApiException(
                 ErrorCode.MEMBERSHIP_NOT_CANCELLABLE,
-                "Membership cancellation is only allowed for PENDING status; current status is " + membership.getStatus(),
-                null
+                "Membership cancellation is only allowed for PENDING status; current status is " + membership.getStatus()
             );
         }
 

@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn test-compile *)",
+      "Bash(grep *)",
+      "Bash(git restore *)",
+      "Bash(sed -i 's/new AssignMembershipRequest\\(\\\\n            memberId,\\\\n            planId,/new AssignMembershipRequest\\(\\\\n            planId,/g' src/test/java/com/studio/booking/membership/api/MembershipAssignmentIntegrationTest.java)",
+      "Bash(echo \"exit:$?\")",
+      "Bash(node -e ' *)"
+    ]
+  }
+}

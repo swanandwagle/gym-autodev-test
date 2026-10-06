@@ -99,7 +99,7 @@ public class InstructorScheduleService {
 
     private ClassSessionScheduleResponse toResponse(ClassSession session, Map<UUID, Long> waitlistCountMap) {
         int availableSpots = session.getCapacity() - session.getBookedCount();
-        int waitlistCount = (int) waitlistCountMap.getOrDefault(session.getId(), 0L);
+        int waitlistCount = waitlistCountMap.getOrDefault(session.getId(), 0L).intValue();
 
         return new ClassSessionScheduleResponse(
                 session.getId(),

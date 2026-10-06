@@ -1,0 +1,16 @@
+spring:
+  flyway:
+    enabled: true
+
+# Disable scheduled jobs in test profile
+jobs:
+  membership-lifecycle:
+    cron: "-"
+  waitlist-expiry:
+    cron: "-"
+  no-show-sweep:
+    cron: "-"
+  waitlist-promotion:
+    cron: "-"
+  booked-count-reconcile:
+    cron: "-"

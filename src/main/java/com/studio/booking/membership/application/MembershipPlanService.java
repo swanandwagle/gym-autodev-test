@@ -28,8 +28,7 @@ public class MembershipPlanService {
         if (planRepository.findByNameCaseInsensitive(request.name()).isPresent()) {
             throw new ApiException(
                 ErrorCode.PLAN_NAME_ALREADY_EXISTS,
-                "A membership plan with this name already exists",
-                null
+                "A membership plan with this name already exists"
             );
         }
 
@@ -38,8 +37,7 @@ public class MembershipPlanService {
         if (durationDays <= 0 || durationDays > 3660) {
             throw new ApiException(
                 ErrorCode.OUT_OF_RANGE,
-                "Duration in days must be between 1 and 3660",
-                null
+                "Duration in days must be between 1 and 3660"
             );
         }
 
@@ -47,8 +45,7 @@ public class MembershipPlanService {
         if (request.classCredits() != null && request.classCredits() <= 0) {
             throw new ApiException(
                 ErrorCode.OUT_OF_RANGE,
-                "Class credits must be greater than 0",
-                null
+                "Class credits must be greater than 0"
             );
         }
 
@@ -69,8 +66,7 @@ public class MembershipPlanService {
         return planRepository.findById(id)
             .orElseThrow(() -> new ApiException(
                 ErrorCode.MEMBERSHIP_PLAN_NOT_FOUND,
-                "No membership plan exists for the given ID",
-                null
+                "No membership plan exists for the given ID"
             ));
     }
 
@@ -112,8 +108,7 @@ public class MembershipPlanService {
                 if (planRepository.findByNameCaseInsensitive(newName).isPresent()) {
                     throw new ApiException(
                         ErrorCode.PLAN_NAME_ALREADY_EXISTS,
-                        "A membership plan with this name already exists",
-                        null
+                        "A membership plan with this name already exists"
                     );
                 }
             }
@@ -135,8 +130,7 @@ public class MembershipPlanService {
         if (!plan.isActive()) {
             throw new ApiException(
                 ErrorCode.PLAN_ALREADY_INACTIVE,
-                "This membership plan is already inactive",
-                null
+                "This membership plan is already inactive"
             );
         }
 
