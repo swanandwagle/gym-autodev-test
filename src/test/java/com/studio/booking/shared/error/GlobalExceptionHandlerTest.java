@@ -50,7 +50,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 FlywayAutoConfiguration.class
         }
 )
-@Import({GlobalExceptionHandler.class, CorrelationFilter.class, ConstraintViolationTranslator.class})
+@Import({GlobalExceptionHandler.class, CorrelationFilter.class, ConstraintViolationTranslator.class, GlobalExceptionHandlerTest.TestController.class})
 @TestPropertySource(properties = "studio.api.base-url=https://api.studio.example")
 class GlobalExceptionHandlerTest {
 

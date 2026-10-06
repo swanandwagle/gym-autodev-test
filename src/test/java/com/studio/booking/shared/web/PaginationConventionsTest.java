@@ -39,11 +39,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 )
 @Import({
         GlobalExceptionHandler.class,
+        com.studio.booking.shared.error.ConstraintViolationTranslator.class,
         com.studio.booking.shared.web.CorrelationFilter.class,
         com.studio.booking.shared.web.StrictJsonConfig.class,
         PageParamsValidator.class,
         SortValidator.class,
-        DateRangeValidator.class
+        DateRangeValidator.class,
+        PaginationConventionsTest.TestController.class
 })
 @TestPropertySource(properties = "studio.api.base-url=https://api.studio.example")
 class PaginationConventionsTest {

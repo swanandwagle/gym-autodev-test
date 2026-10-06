@@ -24,6 +24,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
 
@@ -45,7 +46,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 FlywayAutoConfiguration.class
         }
 )
-@Import({GlobalExceptionHandler.class, CorrelationFilter.class, StrictJsonConfig.class})
+@Import({GlobalExceptionHandler.class, CorrelationFilter.class, StrictJsonConfig.class, com.studio.booking.shared.error.ConstraintViolationTranslator.class, BeanValidationLayerTest.TestController.class})
 @TestPropertySource(properties = "studio.api.base-url=https://api.studio.example")
 class BeanValidationLayerTest {
 
@@ -505,7 +506,7 @@ class BeanValidationLayerTest {
 
     private ErrorEnvelope parseEnvelope(MvcResult result) throws Exception {
         return objectMapper.readValue(
-                result.getResponse().getContentAsString(), ErrorEnvelope.class);
+                result.getResponse().getContentAsString(StandardCharsets.UTF_8), ErrorEnvelope.class);
     }
 
     private void assertFieldCode(ErrorEnvelope env, String field, String expectedCode) {
