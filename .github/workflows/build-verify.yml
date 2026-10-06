@@ -13,6 +13,4 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run mvn verify
-        run: >-
-          "C:\Users\Swanand Wagle\OneDrive\Documents\Swanand Wagle\Work\Softwares\apache-maven-3.8.6-bin\apache-maven-3.8.6\bin\mvn.cmd"
-          verify
+        run: C:\tools\maven\bin\mvn.cmd verify
