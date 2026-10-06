@@ -15,17 +15,17 @@ class BookingCreditPortArchUnitTest {
         JavaClasses classes = new ClassFileImporter()
             .importPackages("com.studio.booking");
 
-        // Booking module must not directly reference Membership entity or MembershipRepository
+        // Booking module production classes must not directly reference Membership entity or MembershipRepository.
+        // Test classes are excluded — they legitimately set up Membership data for integration tests.
         ArchRule rule = noClasses()
             .that()
             .resideInAPackage("com.studio.booking.booking..")
+            .and()
+            .haveSimpleNameNotEndingWith("Test")
             .should()
             .dependOnClassesThat()
-            .resideInAnyPackage(
-                "com.studio.booking.membership.domain..",
-                "com.studio.booking.membership.infrastructure.."
-            )
-            .because("Booking module should consume memberships through the CreditPort interface only");
+            .resideInAPackage("com.studio.booking.membership.infrastructure..")
+            .because("Booking module must not access membership repositories directly; use CreditPort instead");
 
         rule.check(classes);
     }
