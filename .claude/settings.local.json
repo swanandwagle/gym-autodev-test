@@ -6,7 +6,28 @@
       "Bash(git restore *)",
       "Bash(sed -i 's/new AssignMembershipRequest\\(\\\\n            memberId,\\\\n            planId,/new AssignMembershipRequest\\(\\\\n            planId,/g' src/test/java/com/studio/booking/membership/api/MembershipAssignmentIntegrationTest.java)",
       "Bash(echo \"exit:$?\")",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(mvn compile *)",
+      "Bash(mvn test *)",
+      "Bash(python3 *)",
+      "Bash(node *)",
+      "Bash(git stash *)",
+      "Bash(jar tf *)",
+      "Bash(Get-ChildItem \"C:\\\\Projects\\\\gym-autodev-test\\\\target\\\\surefire-reports\")",
+      "Bash(Select-Object Name)",
+      "Bash(mvn exec:java -Dexec.mainClass=com.studio.booking.shared.error.ErrorCataloguePrinter --no-transfer-progress)",
+      "Bash(cat src/main/resources/application.properties)",
+      "Bash(cat src/main/resources/application.yml)",
+      "Bash(git ls-tree *)",
+      "Bash(cd C:\\\\Projects\\\\gym-autodev-test *)",
+      "Bash(tools/mvn/bin/mvn compile *)",
+      "Bash(\"/c/Users/Swanand Wagle/OneDrive/Documents/Swanand Wagle/Work/Softwares/apache-maven-3.8.6-bin/apache-maven-3.8.6/bin/mvn\" test-compile -q)",
+      "Bash(\"/c/Users/Swanand Wagle/OneDrive/Documents/Swanand Wagle/Work/Softwares/apache-maven-3.8.6-bin/apache-maven-3.8.6/bin/mvn\" test-compile)",
+      "Bash(\"/c/Users/Swanand Wagle/OneDrive/Documents/Swanand Wagle/Work/Softwares/apache-maven-3.8.6-bin/apache-maven-3.8.6/bin/mvn\" test -pl . -Dtest=\"OpenApiSpecDriftTest,OpenApiSpecValidationTest,IdempotencyIntegrationTest,IdempotencyServiceTest,ArchitectureTest,MemberStatusGateArchTest,ErrorCodeTest,ErrorCodeCoverageTest,MemberSuspensionTest,BookingCreationServiceTest\" -Dsurefire.failIfNoSpecifiedTests=false)",
+      "Bash(\"/c/Users/Swanand Wagle/OneDrive/Documents/Swanand Wagle/Work/Softwares/apache-maven-3.8.6-bin/apache-maven-3.8.6/bin/mvn\" test -Dtest=\"OpenApiSpecDriftTest,OpenApiSpecValidationTest,IdempotencyIntegrationTest,IdempotencyServiceTest,ArchitectureTest,MemberStatusGateArchTest,ErrorCodeTest,ErrorCodeCoverageTest,MemberSuspensionTest,BookingCreationServiceTest,GlobalExceptionHandlerTest,ErrorCataloguePrinterTest\" -Dsurefire.failIfNoSpecifiedTests=false)",
+      "Bash(\"/c/Users/Swanand Wagle/OneDrive/Documents/Swanand Wagle/Work/Softwares/apache-maven-3.8.6-bin/apache-maven-3.8.6/bin/mvn\" test -Dtest=\"OpenApiSpecDriftTest\" -Dopenapi.spec.regenerate=true -Dsurefire.failIfNoSpecifiedTests=false)",
+      "Bash(docker info *)",
+      "Bash(findstr /E \"\\(Abstract|Base|Support|Fixture\\)\")"
     ]
   }
 }

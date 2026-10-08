@@ -7,13 +7,18 @@ import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Paths;
 import io.swagger.v3.oas.models.media.ArraySchema;
+import io.swagger.v3.oas.models.media.Content;
+import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
+import io.swagger.v3.oas.models.responses.ApiResponse;
+import io.swagger.v3.oas.models.responses.ApiResponses;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 /**
@@ -102,6 +107,74 @@ public class OpenApiConfig {
                 new TreeMap<>(openApi.getPaths()).forEach(sortedPaths::addPathItem);
                 openApi.setPaths(sortedPaths);
             }
+        };
+    }
+
+    /**
+     * Patches the ErrorEnvelope.errors property description so it explicitly
+     * names "422". springdoc drops descriptions on ArraySchema items when
+     * serialising, so we apply the description as a post-processing step.
+     */
+    @Bean
+    @SuppressWarnings("rawtypes")
+    public OpenApiCustomizer errorsDescriptionCustomizer() {
+        return openApi -> {
+            if (openApi.getComponents() == null || openApi.getComponents().getSchemas() == null) return;
+            Schema<?> envelope = openApi.getComponents().getSchemas().get("ErrorEnvelope");
+            if (envelope == null || envelope.getProperties() == null) return;
+            Schema<?> errors = (Schema<?>) envelope.getProperties().get("errors");
+            if (errors != null && (errors.getDescription() == null || !errors.getDescription().contains("422"))) {
+                errors.setDescription("Per-field validation errors. Present ONLY on 422 responses.");
+            }
+        };
+    }
+
+    /**
+     * Injects standard error responses (500, and 400/422 for mutating methods)
+     * into every operation that does not already document them.
+     */
+    @Bean
+    public OpenApiCustomizer globalErrorResponsesCustomizer() {
+        return openApi -> {
+            if (openApi.getPaths() == null) return;
+            Schema<?> errorRef = new Schema<>().$ref("#/components/schemas/ErrorEnvelope");
+            Content errorContent = new Content().addMediaType(
+                    "application/json", new MediaType().schema(errorRef));
+
+            ApiResponse response500 = new ApiResponse()
+                    .description("Internal server error")
+                    .content(errorContent);
+            ApiResponse response400 = new ApiResponse()
+                    .description("Malformed or unreadable request body")
+                    .content(errorContent);
+            ApiResponse response422 = new ApiResponse()
+                    .description("Input validation failed")
+                    .content(errorContent);
+
+            Set<String> mutatingMethods = Set.of("post", "put", "patch");
+
+            openApi.getPaths().values().forEach(pathItem ->
+                pathItem.readOperationsMap().forEach((httpMethod, operation) -> {
+                    if (operation == null) return;
+                    ApiResponses responses = operation.getResponses();
+                    if (responses == null) {
+                        responses = new ApiResponses();
+                        operation.setResponses(responses);
+                    }
+                    if (!responses.containsKey("500")) {
+                        responses.addApiResponse("500", response500);
+                    }
+                    String method = httpMethod.toString().toLowerCase();
+                    if (mutatingMethods.contains(method)) {
+                        if (!responses.containsKey("400")) {
+                            responses.addApiResponse("400", response400);
+                        }
+                        if (!responses.containsKey("422")) {
+                            responses.addApiResponse("422", response422);
+                        }
+                    }
+                })
+            );
         };
     }
 }

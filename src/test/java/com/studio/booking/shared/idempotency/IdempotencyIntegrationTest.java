@@ -58,18 +58,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         CorrelationFilter.class,
         StrictJsonConfig.class,
         ConstraintViolationTranslator.class,
-        IdempotencyService.class
+        IdempotencyService.class,
+        IdempotencyIntegrationTest.StubBookingController.class
 })
 @TestPropertySource(properties = "studio.api.base-url=https://api.studio.example")
 class IdempotencyIntegrationTest {
 
     @Autowired MockMvc mockMvc;
     @Autowired ObjectMapper objectMapper;
-    @Autowired StubBookingController stubController;
 
     @BeforeEach
     void reset() {
-        stubController.reset();
+        StubBookingController.reset();
     }
 
     // =========================================================================
@@ -91,13 +91,13 @@ class IdempotencyIntegrationTest {
         record BookingResponse(String id, String memberId, String sessionId, String status) {}
 
         /** In-memory idempotency store: key = "memberId:idempotencyKey" */
-        private final ConcurrentHashMap<String, IdempotencyRecord> store = new ConcurrentHashMap<>();
+        private static final ConcurrentHashMap<String, IdempotencyRecord> store = new ConcurrentHashMap<>();
 
-        final AtomicInteger creationCount       = new AtomicInteger(0);
-        final AtomicInteger creditDeductions    = new AtomicInteger(0);
-        final AtomicInteger bookedCountIncrements = new AtomicInteger(0);
+        static final AtomicInteger creationCount       = new AtomicInteger(0);
+        static final AtomicInteger creditDeductions    = new AtomicInteger(0);
+        static final AtomicInteger bookedCountIncrements = new AtomicInteger(0);
 
-        void reset() {
+        static void reset() {
             store.clear();
             creationCount.set(0);
             creditDeductions.set(0);
@@ -163,7 +163,7 @@ class IdempotencyIntegrationTest {
         }
 
         /** Simulates post-creation cancellation by updating the stored response body. */
-        void cancelBooking(String memberIdStr, String idempotencyKey, String sessionIdStr) {
+        static void cancelBooking(String memberIdStr, String idempotencyKey, String sessionIdStr) {
             String storeKey = memberIdStr + ":" + idempotencyKey;
             store.computeIfPresent(storeKey, (k, existing) -> {
                 BookingResponse cancelled = new BookingResponse(
@@ -194,7 +194,7 @@ class IdempotencyIntegrationTest {
             }
         }
 
-        private String toJson(Object obj) {
+        private static String toJson(Object obj) {
             try {
                 return new ObjectMapper().writeValueAsString(obj);
             } catch (Exception e) {
@@ -220,7 +220,7 @@ class IdempotencyIntegrationTest {
                         .content("{\"memberId\":\"" + MEMBER_A + "\",\"sessionId\":\"" + SESSION_1 + "\"}"))
                 .andExpect(status().isCreated());
 
-        assertThat(stubController.creationCount.get()).isEqualTo(1);
+        assertThat(StubBookingController.creationCount.get()).isEqualTo(1);
     }
 
     // =========================================================================
@@ -269,7 +269,7 @@ class IdempotencyIntegrationTest {
                         .header("X-Member-Id", MEMBER_A).content(body))
                 .andExpect(status().isOk());
 
-        assertThat(stubController.creditDeductions.get())
+        assertThat(StubBookingController.creditDeductions.get())
                 .as("Credit deducted exactly once across both requests")
                 .isEqualTo(1);
     }
@@ -292,7 +292,7 @@ class IdempotencyIntegrationTest {
                         .header("X-Member-Id", MEMBER_A).content(body))
                 .andExpect(status().isOk());
 
-        assertThat(stubController.bookedCountIncrements.get())
+        assertThat(StubBookingController.bookedCountIncrements.get())
                 .as("booked_count incremented exactly once")
                 .isEqualTo(1);
     }
@@ -348,7 +348,7 @@ class IdempotencyIntegrationTest {
                 .as("Remaining %d requests must be 200 replays", threadCount - 1)
                 .isEqualTo(threadCount - 1);
 
-        assertThat(stubController.creationCount.get())
+        assertThat(StubBookingController.creationCount.get())
                 .as("Underlying creation invoked exactly once")
                 .isEqualTo(1);
     }
@@ -400,7 +400,7 @@ class IdempotencyIntegrationTest {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        assertThat(stubController.creationCount.get())
+        assertThat(StubBookingController.creationCount.get())
                 .as("Two independent creations for two different members")
                 .isEqualTo(2);
 
@@ -432,7 +432,7 @@ class IdempotencyIntegrationTest {
         assertThat(env.errors().getFirst().code()).isEqualTo("INVALID_FORMAT");
         assertThat(env.errors().getFirst().field()).isEqualTo("Idempotency-Key");
 
-        assertThat(stubController.creationCount.get())
+        assertThat(StubBookingController.creationCount.get())
                 .as("No creation should occur when key is rejected")
                 .isEqualTo(0);
     }
@@ -465,7 +465,7 @@ class IdempotencyIntegrationTest {
                 .andExpect(status().isCreated());
 
         // Simulate cancellation: service updates the body stored under the key
-        stubController.cancelBooking(MEMBER_A, key, SESSION_1);
+        StubBookingController.cancelBooking(MEMBER_A, key, SESSION_1);
 
         MvcResult replay = mockMvc.perform(post("/test/bookings").contentType(MediaType.APPLICATION_JSON)
                         .header("Idempotency-Key", key)
@@ -475,7 +475,7 @@ class IdempotencyIntegrationTest {
                 .andReturn();
 
         assertThat(replay.getResponse().getContentAsString()).contains("CANCELLED");
-        assertThat(stubController.creationCount.get())
+        assertThat(StubBookingController.creationCount.get())
                 .as("No new creation after cancellation")
                 .isEqualTo(1);
     }

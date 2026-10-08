@@ -2,6 +2,7 @@ package com.studio.booking.member.application;
 
 import com.studio.booking.member.domain.Member;
 import com.studio.booking.member.infrastructure.MemberStatusGateImpl;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,7 @@ import java.util.UUID;
  * properly managed by Spring's transaction framework.
  */
 @Service
+@Primary
 public class MemberStatusGateService implements MemberStatusGate {
 
     private final MemberStatusGate adapter;

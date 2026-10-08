@@ -3,6 +3,19 @@ package com.studio.booking.shared.openapi;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.studio.booking.booking.infrastructure.BookingRepository;
+import com.studio.booking.booking.infrastructure.NoShowRecordRepository;
+import com.studio.booking.booking.infrastructure.WaitlistEntryRepository;
+import com.studio.booking.catalog.infrastructure.ClassSessionRepository;
+import com.studio.booking.catalog.infrastructure.ClassTypeRepository;
+import com.studio.booking.catalog.infrastructure.InstructorRepository;
+import com.studio.booking.catalog.infrastructure.RoomRepository;
+import com.studio.booking.jobs.infrastructure.JobRunRepository;
+import com.studio.booking.member.infrastructure.MemberRepository;
+import com.studio.booking.membership.infrastructure.CreditTransactionRepository;
+import com.studio.booking.membership.infrastructure.MembershipPlanRepository;
+import com.studio.booking.membership.infrastructure.MembershipRepository;
+import com.studio.booking.shared.notification.NotificationLogRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.data.jpa.JpaRepositoriesAutoConfiguration;
@@ -12,6 +25,7 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerA
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -62,6 +76,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 )
 @AutoConfigureMockMvc
 class OpenApiSpecDriftTest {
+
+    @MockBean BookingRepository bookingRepository;
+    @MockBean NoShowRecordRepository noShowRecordRepository;
+    @MockBean WaitlistEntryRepository waitlistEntryRepository;
+    @MockBean ClassSessionRepository classSessionRepository;
+    @MockBean ClassTypeRepository classTypeRepository;
+    @MockBean InstructorRepository instructorRepository;
+    @MockBean RoomRepository roomRepository;
+    @MockBean JobRunRepository jobRunRepository;
+    @MockBean MemberRepository memberRepository;
+    @MockBean CreditTransactionRepository creditTransactionRepository;
+    @MockBean MembershipPlanRepository membershipPlanRepository;
+    @MockBean MembershipRepository membershipRepository;
+    @MockBean NotificationLogRepository notificationLogRepository;
 
     private static final ObjectMapper YAML_MAPPER = new ObjectMapper(new YAMLFactory());
 

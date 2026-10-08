@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.studio.booking.booking.application.BookingService;
 import com.studio.booking.booking.domain.Booking;
-import com.studio.booking.booking.infrastructure.BookingRepository;
 import com.studio.booking.shared.error.ApiException;
 import com.studio.booking.shared.error.ErrorCode;
 import com.studio.booking.shared.error.ErrorEnvelope;
@@ -32,18 +31,15 @@ import java.util.UUID;
 public class BookingController {
 
     private final BookingService bookingService;
-    private final BookingRepository bookingRepository;
     private final IdempotencyService idempotencyService;
     private final ObjectMapper objectMapper;
 
     public BookingController(
         BookingService bookingService,
-        BookingRepository bookingRepository,
         IdempotencyService idempotencyService,
         ObjectMapper objectMapper
     ) {
         this.bookingService = bookingService;
-        this.bookingRepository = bookingRepository;
         this.idempotencyService = idempotencyService;
         this.objectMapper = objectMapper;
     }
@@ -138,7 +134,7 @@ public class BookingController {
 
         // Check for idempotent replay
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
-            Optional<Booking> existingBooking = bookingRepository.findByMemberIdAndIdempotencyKey(memberId, idempotencyKey);
+            Optional<Booking> existingBooking = bookingService.findByMemberIdAndIdempotencyKey(memberId, idempotencyKey);
             if (existingBooking.isPresent()) {
                 Booking booking = existingBooking.get();
                 IdempotencyRecord record = new IdempotencyRecord(
@@ -170,7 +166,7 @@ public class BookingController {
         if (idempotencyKey != null && !idempotencyKey.isBlank()) {
             try {
                 String responseBody = objectMapper.writeValueAsString(response);
-                bookingRepository.updateIdempotencyFields(booking.getId(), idempotencyKey, responseBody);
+                bookingService.storeIdempotencyKey(booking.getId(), idempotencyKey, responseBody);
             } catch (JsonProcessingException e) {
                 throw new ApiException(ErrorCode.INTERNAL_ERROR, "Failed to serialize booking response", e);
             }

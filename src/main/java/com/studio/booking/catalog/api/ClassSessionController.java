@@ -12,7 +12,6 @@ import com.studio.booking.catalog.api.response.PatchClassSessionResponse;
 import com.studio.booking.catalog.application.BrowseSessionsService;
 import com.studio.booking.catalog.application.ClassSessionService;
 import com.studio.booking.catalog.application.RecurringSessionGenerator;
-import com.studio.booking.catalog.infrastructure.ClassSessionRepository;
 import com.studio.booking.shared.validation.ValidUuid;
 import com.studio.booking.shared.web.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -33,13 +32,11 @@ public class ClassSessionController {
 
     private final ClassSessionService service;
     private final RecurringSessionGenerator recurringGenerator;
-    private final ClassSessionRepository sessionRepository;
     private final BrowseSessionsService browseService;
 
-    public ClassSessionController(ClassSessionService service, RecurringSessionGenerator recurringGenerator, ClassSessionRepository sessionRepository, BrowseSessionsService browseService) {
+    public ClassSessionController(ClassSessionService service, RecurringSessionGenerator recurringGenerator, BrowseSessionsService browseService) {
         this.service = service;
         this.recurringGenerator = recurringGenerator;
-        this.sessionRepository = sessionRepository;
         this.browseService = browseService;
     }
 
@@ -140,28 +137,7 @@ public class ClassSessionController {
     @ApiResponse(responseCode = "404", description = "No sessions found for this recurrence ID")
     @ApiResponse(responseCode = "422", description = "Malformed UUID")
     public ResponseEntity<List<ClassSessionScheduleResponse>> getByRecurrenceId(@PathVariable @ValidUuid String recurrenceId) {
-        var sessions = sessionRepository.findByRecurrenceIdOrderByStartsAt(UUID.fromString(recurrenceId));
-        if (sessions.isEmpty()) {
-            throw new com.studio.booking.shared.error.ApiException(
-                    com.studio.booking.shared.error.ErrorCode.NOT_FOUND,
-                    "No sessions found for recurrence ID");
-        }
-        var responses = sessions.stream()
-                .map(s -> new ClassSessionScheduleResponse(
-                        s.getId(),
-                        s.getClassTypeId(),
-                        s.getInstructorId(),
-                        s.getRoomId(),
-                        s.getStartsAt(),
-                        s.getEndsAt(),
-                        s.getCapacity(),
-                        s.getBookedCount(),
-                        s.getCapacity() - s.getBookedCount(),
-                        0,
-                        s.getStatus()
-                ))
-                .toList();
-        return ResponseEntity.ok(responses);
+        return ResponseEntity.ok(service.getByRecurrenceId(UUID.fromString(recurrenceId)));
     }
 
     @PatchMapping("/{id}")

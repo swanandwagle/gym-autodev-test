@@ -1,5 +1,6 @@
 package com.studio.booking.booking.infrastructure;
 
+import com.studio.booking.booking.application.BookingDetail;
 import com.studio.booking.booking.domain.Booking;
 import org.springframework.data.jpa.repository.JpaRepository;
 import jakarta.persistence.LockModeType;
@@ -21,13 +22,6 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM Booking b WHERE b.id = :id")
     Optional<Booking> findByIdWithLock(@Param("id") UUID id);
-
-    interface BookingDetail {
-        UUID getId(); UUID getMemberId(); UUID getSessionId(); UUID getMembershipId();
-        String getStatus(); String getSource(); Instant getBookedAt(); String getCancellationType();
-        Boolean getCreditRefunded(); Instant getCheckedInAt(); String getCheckedInBy();
-        Instant getStartsAt(); Instant getEndsAt(); String getClassTypeName(); String getInstructorName(); String getRoomName();
-    }
 
     String DETAIL_SELECT = "SELECT b.id AS id, b.member_id AS \"memberId\", b.session_id AS \"sessionId\", " +
         "b.membership_id AS \"membershipId\", b.status AS status, b.source AS source, b.created_at AS \"bookedAt\", " +

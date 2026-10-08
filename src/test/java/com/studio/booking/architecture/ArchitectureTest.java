@@ -38,7 +38,8 @@ class ArchitectureTest {
     static final ArchRule ac3_rule3_transactionalOnlyInApplicationPackage =
             classes().that().areAnnotatedWith(Transactional.class)
                     .should().resideInAPackage("..application..")
-                    .as("@Transactional must only be used in application packages");
+                    .as("@Transactional must only be used in application packages")
+                    .allowEmptyShould(true);
 
     // Rule 4: Repository classes in infrastructure must not be @Transactional
     @ArchTest

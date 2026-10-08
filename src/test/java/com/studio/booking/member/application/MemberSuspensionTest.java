@@ -57,7 +57,7 @@ class MemberSuspensionTest {
         long originalUpdatedAt = active.getUpdatedAt().toEpochMilli();
 
         when(memberRepository.findById(MEMBER_ID)).thenReturn(Optional.of(active));
-        when(fixedClock.instant()).thenReturn(FIXED_TIME);
+        when(clock.instant()).thenReturn(FIXED_TIME);
 
         Member saved = new Member("john@example.com", "John", null, "ACTIVE", fixedClock);
         saved.suspendStatus("STAFF", fixedClock);

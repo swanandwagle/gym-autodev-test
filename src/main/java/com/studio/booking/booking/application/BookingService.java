@@ -1,5 +1,6 @@
 package com.studio.booking.booking.application;
 
+import com.studio.booking.booking.application.BookingDetail;
 import com.studio.booking.booking.domain.Booking;
 import com.studio.booking.booking.infrastructure.BookingRepository;
 import com.studio.booking.catalog.domain.ClassSession;
@@ -146,9 +147,19 @@ public class BookingService {
     }
 
     @Transactional(readOnly = true)
-    public BookingRepository.BookingDetail getBooking(UUID bookingId) {
+    public BookingDetail getBooking(UUID bookingId) {
         return bookingRepository.findDetailById(bookingId).orElseThrow(() ->
             new ApiException(ErrorCode.BOOKING_NOT_FOUND, "No booking found with the given identifier"));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Booking> findByMemberIdAndIdempotencyKey(UUID memberId, String idempotencyKey) {
+        return bookingRepository.findByMemberIdAndIdempotencyKey(memberId, idempotencyKey);
+    }
+
+    @Transactional
+    public void storeIdempotencyKey(UUID bookingId, String idempotencyKey, String responseBody) {
+        bookingRepository.updateIdempotencyFields(bookingId, idempotencyKey, responseBody);
     }
 
     @Transactional
@@ -187,7 +198,7 @@ public class BookingService {
                                             boolean creditRefunded, UUID promotedWaitlistEntryId) {}
 
     @Transactional(readOnly = true)
-    public Page<BookingRepository.BookingDetail> getMemberHistory(UUID memberId, List<String> statuses,
+    public Page<BookingDetail> getMemberHistory(UUID memberId, List<String> statuses,
             Instant from, Instant to, boolean upcomingOnly, int page, int size) {
         try {
             memberStatusGate.loadForTransaction(memberId);

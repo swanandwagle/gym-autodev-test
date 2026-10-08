@@ -2,8 +2,10 @@ package com.studio.booking.membership.application;
 
 import com.studio.booking.member.infrastructure.MemberRepository;
 import com.studio.booking.membership.api.AssignMembershipRequest;
+import com.studio.booking.membership.domain.CreditTransaction;
 import com.studio.booking.membership.domain.Membership;
 import com.studio.booking.membership.domain.MembershipPlan;
+import com.studio.booking.membership.infrastructure.CreditTransactionRepository;
 import com.studio.booking.membership.infrastructure.MembershipPlanRepository;
 import com.studio.booking.membership.infrastructure.MembershipRepository;
 import com.studio.booking.shared.error.ApiException;
@@ -28,6 +30,7 @@ public class MembershipService {
     private final MembershipRepository membershipRepository;
     private final MembershipPlanRepository planRepository;
     private final MemberRepository memberRepository;
+    private final CreditTransactionRepository creditTransactionRepository;
     private final Clock clock;
     private final StudioTimeZone studioTimeZone;
 
@@ -35,12 +38,14 @@ public class MembershipService {
         MembershipRepository membershipRepository,
         MembershipPlanRepository planRepository,
         MemberRepository memberRepository,
+        CreditTransactionRepository creditTransactionRepository,
         Clock clock,
         StudioTimeZone studioTimeZone
     ) {
         this.membershipRepository = membershipRepository;
         this.planRepository = planRepository;
         this.memberRepository = memberRepository;
+        this.creditTransactionRepository = creditTransactionRepository;
         this.clock = clock;
         this.studioTimeZone = studioTimeZone;
     }
@@ -190,6 +195,11 @@ public class MembershipService {
         membership.setUpdatedAt(Instant.now(clock));
 
         return membershipRepository.save(membership);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CreditTransaction> getCreditTransactions(UUID membershipId) {
+        return creditTransactionRepository.findByMembershipIdOrderByCreatedAtAsc(membershipId);
     }
 
     private Instant computeExpiry(Instant startsAt, int durationDays) {

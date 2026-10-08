@@ -1,9 +1,8 @@
 package com.studio.booking.membership.api;
 
+import com.studio.booking.membership.application.MembershipService;
 import com.studio.booking.membership.domain.CreditTransaction;
 import com.studio.booking.membership.domain.Membership;
-import com.studio.booking.membership.infrastructure.CreditTransactionRepository;
-import com.studio.booking.membership.infrastructure.MembershipRepository;
 import com.studio.booking.shared.error.ApiException;
 import com.studio.booking.shared.error.ErrorCode;
 import com.studio.booking.shared.validation.ValidUuid;
@@ -27,15 +26,10 @@ import java.util.UUID;
 @Tag(name = "Credit Ledger", description = "Credit transaction ledger and balance reconciliation")
 public class CreditLedgerController {
 
-    private final MembershipRepository membershipRepository;
-    private final CreditTransactionRepository creditTransactionRepository;
+    private final MembershipService membershipService;
 
-    public CreditLedgerController(
-        MembershipRepository membershipRepository,
-        CreditTransactionRepository creditTransactionRepository
-    ) {
-        this.membershipRepository = membershipRepository;
-        this.creditTransactionRepository = creditTransactionRepository;
+    public CreditLedgerController(MembershipService membershipService) {
+        this.membershipService = membershipService;
     }
 
     @GetMapping("/{membershipId}/ledger")
@@ -69,11 +63,7 @@ public class CreditLedgerController {
     public ResponseEntity<CreditLedgerResponse> getLedger(
         @PathVariable @ValidUuid UUID membershipId
     ) {
-        Membership membership = membershipRepository.findById(membershipId)
-            .orElseThrow(() -> new ApiException(
-                ErrorCode.MEMBERSHIP_NOT_FOUND,
-                "No membership exists for the given ID"
-            ));
+        Membership membership = membershipService.getMembership(membershipId);
 
         // For unlimited memberships, return empty ledger with null credit figures
         if (membership.isUnlimited()) {
@@ -85,7 +75,7 @@ public class CreditLedgerController {
             ));
         }
 
-        List<CreditTransaction> transactions = creditTransactionRepository.findByMembershipIdOrderByCreatedAtAsc(membershipId);
+        List<CreditTransaction> transactions = membershipService.getCreditTransactions(membershipId);
         List<CreditLedgerResponse.Entry> entries = transactions.stream()
             .map(txn -> new CreditLedgerResponse.Entry(
                 txn.getId().toString(),

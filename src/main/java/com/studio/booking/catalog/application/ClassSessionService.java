@@ -191,6 +191,15 @@ public class ClassSessionService {
         return toResponse(session);
     }
 
+    @Transactional(readOnly = true)
+    public List<ClassSessionScheduleResponse> getByRecurrenceId(UUID recurrenceId) {
+        List<ClassSession> sessions = sessionRepository.findByRecurrenceIdOrderByStartsAt(recurrenceId);
+        if (sessions.isEmpty()) {
+            throw new ApiException(ErrorCode.NOT_FOUND, "No sessions found for recurrence ID");
+        }
+        return sessions.stream().map(this::toResponse).toList();
+    }
+
     @Transactional
     public PatchClassSessionResponse patch(UUID id, PatchClassSessionRequest request) {
         Instant now = clock.instant();

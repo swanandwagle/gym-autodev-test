@@ -1,8 +1,8 @@
 package com.studio.booking.booking.api;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import com.studio.booking.booking.application.BookingDetail;
 import com.studio.booking.booking.domain.Booking;
-import com.studio.booking.booking.infrastructure.BookingRepository;
 import java.time.Instant;
 
 @JsonPropertyOrder({"id", "memberId", "sessionId", "membershipId", "status", "source", "bookedAt", "cancellationType", "creditRefunded", "checkedInAt", "checkedInBy", "session", "creditDeducted", "createdAt", "updatedAt"})
@@ -21,7 +21,7 @@ public record BookingResponse(
             booking.getCreatedAt().toString(), booking.getUpdatedAt().toString());
     }
 
-    public static BookingResponse from(BookingRepository.BookingDetail b) {
+    public static BookingResponse from(BookingDetail b) {
         return new BookingResponse(b.getId().toString(), b.getMemberId().toString(), b.getSessionId().toString(),
             b.getMembershipId().toString(), apiStatus(b.getStatus()), apiSource(b.getSource()), b.getBookedAt().toString(),
             apiCancellation(b.getCancellationType()), b.getCreditRefunded(), b.getCheckedInAt(), b.getCheckedInBy(),

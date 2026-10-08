@@ -22,23 +22,23 @@ class MemberStatusGateArchTest {
 
     @ArchTest
     static final ArchRule ac5_booking_must_not_reference_member_entity =
-            noClasses().that().resideInAPackage("..booking..")
+            noClasses().that().resideInAPackage("com.studio.booking.booking..")
                     .should().dependOnClassesThat()
-                    .resideInAPackage("..member.domain..")
+                    .resideInAPackage("com.studio.booking.member.domain..")
                     .as("Booking module must not directly reference member domain entities");
 
     @ArchTest
     static final ArchRule ac5_booking_must_not_reference_member_repository =
-            noClasses().that().resideInAPackage("..booking..")
+            noClasses().that().resideInAPackage("com.studio.booking.booking..")
                     .should().dependOnClassesThat()
-                    .resideInAPackage("..member.infrastructure..")
+                    .resideInAPackage("com.studio.booking.member.infrastructure..")
                     .as("Booking module must not directly reference member infrastructure");
 
     @ArchTest
     static final ArchRule ac5_booking_must_not_reference_member_service =
-            noClasses().that().resideInAPackage("..booking..")
+            noClasses().that().resideInAPackage("com.studio.booking.booking..")
                     .should().dependOnClassesThat(
-                            resideInAPackage("..member.application..").and(nameMatching(".*Service")))
+                            resideInAPackage("com.studio.booking.member.application..").and(nameMatching(".*Service")))
                     .as("Booking module must not directly reference member services (use MemberStatusGate instead)");
 
     @Test
